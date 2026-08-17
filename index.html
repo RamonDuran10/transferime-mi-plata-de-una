@@ -61,7 +61,8 @@
     }
 
     /* ── Top bar ── */
-    .top-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+    .top-bar { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+    .top-bar-row { display: flex; align-items: center; gap: 8px; }
     .top-bar label { font-weight: 700; white-space: nowrap; font-size: 0.82rem; }
     .top-bar input {
       flex: 1; padding: 7px 10px;
@@ -69,6 +70,17 @@
       font-size: 0.95rem; font-weight: 700; color: #1B1A2E;
       background: #FFFDF7;
       outline: none; transition: box-shadow .15s;
+    }
+    .top-bar-selects select { flex: 1; min-width: 0; }
+    .top-bar-actions .btn-share { flex: 1; }
+
+    @media (min-width: 700px) {
+      .top-bar { flex-direction: row; flex-wrap: wrap; align-items: center; }
+      .top-bar-row { flex: 0 0 auto; }
+      .top-bar-total { flex: 1 1 auto; }
+      .top-bar-selects select { flex: 0 0 auto; }
+      .top-bar-actions { margin-left: auto; }
+      .top-bar-actions .btn-share { flex: 0 0 auto; }
     }
     .top-bar input:focus { box-shadow: 0 0 0 3px #FFD9A0; }
 
@@ -87,7 +99,7 @@
     .locked .btn-remove-persona, .locked .btn-add-persona,
     .locked .btn-add-shared { display: none !important; }
     .locked #totalBill { pointer-events: none; background: #F3F0FF; }
-    .locked .tip-chips button { pointer-events: none; opacity: .6; }
+    .locked .tip-select { pointer-events: none; opacity: .6; }
     .locked .currency-select { pointer-events: none; opacity: .6; }
     .lock-banner {
       display: flex; align-items: center; justify-content: space-between;
@@ -113,6 +125,12 @@
       cursor: pointer; transition: all .15s;
     }
     .btn-reset:hover { background: #FFE3E3; border-color: #FF5D5D; }
+    .btn-info {
+      flex: 0 0 auto; width: 34px; height: 34px; padding: 0;
+      background: #fff; color: #4DABF7; font-size: 0.95rem; font-weight: 800;
+      border: 2px solid #1B1A2E; border-radius: 999px; cursor: pointer; transition: all .15s;
+    }
+    .btn-info:hover { background: #EAF6FF; border-color: #4DABF7; }
 
 
     /* ── Shared card ── */
@@ -137,6 +155,7 @@
       border: 2.5px solid #1B1A2E; border-radius: 16px; overflow: hidden;
       box-shadow: 3px 3px 0 #1B1A2E; background: #fff;
     }
+    .persona-card.is-payer { border-color: #FFB020; box-shadow: 3px 3px 0 #FFB020; }
     .persona-header { display: flex; align-items: center; gap: 6px; background: #FFFDF7; padding: 7px 10px; }
     .persona-header input {
       flex: 1; border: 2px solid #1B1A2E; background: #fff; border-radius: 8px;
@@ -151,6 +170,13 @@
       transition: transform .15s;
     }
     .btn-persona-emoji:hover { transform: rotate(-8deg) scale(1.05); }
+    .btn-persona-paid {
+      flex: 0 0 auto; background: none; border: none; cursor: pointer;
+      font-size: 1.05rem; line-height: 1; opacity: .3; filter: grayscale(1);
+      transition: all .15s;
+    }
+    .btn-persona-paid:hover { opacity: .65; }
+    .btn-persona-paid.is-paid { opacity: 1; filter: none; transform: scale(1.1); }
     .btn-remove-persona {
       background: #fff; border: 2px solid #1B1A2E; cursor: pointer; color: #FF5D5D;
       font-size: 0.75rem; font-weight: 700; width: 24px; height: 24px; border-radius: 7px; transition: background .15s;
@@ -193,6 +219,10 @@
       border-radius: 8px; padding: 4px 10px; font-size: 0.72rem; font-weight: 700; cursor: pointer; transition: all .15s;
     }
     .btn-add-item:hover { border-color: #6C5CE7; background: #F3F0FF; }
+    .paid-badge {
+      font-size: 0.68rem; font-weight: 700; color: #92400e; background: #FFF3BF;
+      border: 1.5px solid #FFB020; border-radius: 999px; padding: 2px 8px; white-space: nowrap;
+    }
     .persona-total { font-family: 'Baloo 2', cursive; font-size: 0.9rem; font-weight: 800; color: #6C5CE7; white-space: nowrap; }
 
     /* ── Add persona ── */
@@ -259,14 +289,39 @@
 
     /* ── Modal compartir ── */
     .modal-overlay {
-      display: none; position: fixed; inset: 0;
+      display: flex; position: fixed; inset: 0;
       background: rgba(27,26,46,0.6); z-index: 100;
-      align-items: center; justify-content: center; padding: 16px;
+      align-items: flex-end; justify-content: center; padding: 0;
+      opacity: 0; visibility: hidden; pointer-events: none;
+      transition: opacity .25s ease-out, visibility 0s linear .25s;
     }
-    .modal-overlay.show { display: flex; }
+    .modal-overlay.show {
+      opacity: 1; visibility: visible; pointer-events: auto;
+      transition: opacity .25s ease-out;
+    }
     .modal {
-      background: #fff; border: 2.5px solid #1B1A2E; border-radius: 16px; padding: 16px;
-      width: 100%; max-width: 420px; box-shadow: 5px 5px 0 #1B1A2E;
+      background: #fff; border: 2.5px solid #1B1A2E; border-bottom: none;
+      border-radius: 20px 20px 0 0;
+      padding: 8px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+      width: 100%; max-width: 480px; max-height: 85vh; overflow-y: auto;
+      box-shadow: 0 -6px 0 #1B1A2E;
+      transform: translateY(100%);
+      transition: transform .3s cubic-bezier(.32,.72,0,1);
+    }
+    .modal-overlay.show .modal { transform: translateY(0); }
+    .modal-handle {
+      width: 40px; height: 5px; background: #E4E0F0; border-radius: 999px;
+      margin: 6px auto 10px;
+    }
+
+    @media (min-width: 700px) {
+      .modal-overlay { align-items: center; padding: 16px; }
+      .modal {
+        border-bottom: 2.5px solid #1B1A2E; border-radius: 16px;
+        padding: 16px; max-height: 90vh; box-shadow: 5px 5px 0 #1B1A2E;
+        transform: none;
+      }
+      .modal-handle { display: none; }
     }
     .modal-header {
       display: flex; justify-content: space-between; align-items: center;
@@ -313,10 +368,48 @@
       margin-top: 6px; font-size: 0.7rem; color: #92400e; background: #FFF3BF;
       border-radius: 6px; padding: 4px 8px;
     }
-    .modal-relay-done {
-      font-size: 0.75rem; color: #1B1A2E; background: #B2F2BB;
-      border-radius: 6px; padding: 6px 8px; font-weight: 600;
+    .modal-done-card {
+      text-align: center; padding: 18px 14px; border-radius: 16px;
+      background: #FFF3E0; background-image: radial-gradient(#FFD9A0 2px, transparent 2px);
+      background-size: 20px 20px;
+      border: 2.5px solid #1B1A2E; box-shadow: 3px 3px 0 #1B1A2E;
     }
+    .modal-done-title {
+      font-family: 'Baloo 2', cursive; font-weight: 800; font-size: 1.1rem;
+      color: #1B1A2E; margin-bottom: 6px; letter-spacing: -.3px;
+    }
+    .modal-done-subtitle { font-size: 0.8rem; color: #6B6684; font-weight: 500; line-height: 1.4; }
+
+    /* ── Modal ¿cómo funciona? ── */
+    .info-steps { list-style: none; display: flex; flex-direction: column; gap: 10px; padding-bottom: 4px; }
+    .info-steps li {
+      display: flex; gap: 10px; align-items: flex-start;
+      font-size: 0.85rem; color: #1B1A2E; line-height: 1.4;
+    }
+    .info-steps .step-num {
+      flex: 0 0 auto; width: 24px; height: 24px; border-radius: 999px;
+      background: #6C5CE7; color: #fff; border: 2px solid #1B1A2E;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Baloo 2', cursive; font-weight: 800; font-size: 0.75rem;
+    }
+
+    /* ── Modal de confirmación/aviso genérico ── */
+    .custom-dialog-title {
+      font-family: 'Baloo 2', cursive; font-size: 0.95rem; font-weight: 800;
+      color: #1B1A2E; margin-bottom: 8px;
+    }
+    .custom-dialog-message { font-size: 0.85rem; color: #1B1A2E; line-height: 1.5; padding-bottom: 16px; }
+    .custom-dialog-actions { display: flex; gap: 8px; }
+    .btn-dialog-cancel, .btn-dialog-ok {
+      flex: 1; padding: 10px; border: 2.5px solid #1B1A2E; border-radius: 10px;
+      font-family: 'Baloo 2', cursive; font-weight: 700; font-size: 0.85rem; cursor: pointer;
+      transition: all .1s;
+    }
+    .btn-dialog-cancel { background: #fff; color: #1B1A2E; }
+    .btn-dialog-cancel:hover { background: #FFE3E3; border-color: #FF5D5D; }
+    .btn-dialog-ok { background: #6C5CE7; color: #fff; box-shadow: 0 3px 0 #1B1A2E; }
+    .btn-dialog-ok:hover { background: #5A4BD6; }
+    .btn-dialog-ok:active { transform: translateY(3px); box-shadow: none; }
 
     /* toast */
     .toast {
@@ -327,24 +420,13 @@
     }
     .toast.show { opacity: 1; }
 
-    /* ── Chips de propina ── */
-    .top-bar .pct-label { font-size: 0.78rem; color: #6B6684; font-weight: 600; white-space: nowrap; }
-    .currency-select {
-      flex: 0 0 auto; font-family: 'Baloo 2', cursive; font-weight: 700; font-size: 0.78rem;
-      padding: 7px 8px; border: 2px solid #1B1A2E; border-radius: 9px;
+    /* ── Selectores de moneda y propina ── */
+    .currency-select, .tip-select {
+      flex: 0 0 auto; font-family: 'Baloo 2', cursive; font-weight: 700; font-size: 0.85rem;
+      padding: 8px 10px; border: 2px solid #1B1A2E; border-radius: 10px;
       background: #fff; color: #1B1A2E; cursor: pointer; outline: none;
     }
-    .currency-select:focus { box-shadow: 0 0 0 3px #FFD9A0; }
-    .tip-chips { display: flex; gap: 4px; }
-    .tip-chips button {
-      font-family: 'Baloo 2', cursive; font-weight: 700; font-size: 0.78rem;
-      padding: 7px 10px; border: 2px solid #1B1A2E; border-radius: 9px;
-      background: #fff; color: #1B1A2E; cursor: pointer;
-      box-shadow: 0 2px 0 #1B1A2E; transition: all .1s;
-    }
-    .tip-chips button:hover { background: #FFF3E0; }
-    .tip-chips button:active { transform: translateY(2px); box-shadow: none; }
-    .tip-chips button.active { background: #FFB020; box-shadow: 0 2px 0 #1B1A2E; }
+    .currency-select:focus, .tip-select:focus { box-shadow: 0 0 0 3px #FFD9A0; }
 
     @media (max-width: 700px) {
       .main-card { width: 100%; }
@@ -368,23 +450,29 @@
 <div class="main-card">
 
   <div class="top-bar">
-    <label for="totalBill" id="totalLabel">💰</label>
-    <input type="text" inputmode="decimal" id="totalBill" placeholder="Total de la cuenta" oninput="onTotalChange()" onblur="reformatAmountField(this); S.total=this.value; save();" />
-    <select id="currencySelect" class="currency-select" onchange="setCurrency(this.value)" title="Moneda">
-      <option value="CLP">🇨🇱 CLP</option>
-      <option value="USD">🇺🇸 USD</option>
-      <option value="ARS">🇦🇷 ARS</option>
-      <option value="EUR">🇪🇺 EUR</option>
-    </select>
-    <span class="pct-label">Propina</span>
-    <div class="tip-chips" id="tipChips">
-      <button data-val="0" onclick="setPct(0)">sin</button>
-      <button data-val="10" onclick="setPct(10)">10%</button>
-      <button data-val="15" onclick="setPct(15)">15%</button>
-      <button data-val="20" onclick="setPct(20)">20%</button>
+    <div class="top-bar-row top-bar-total">
+      <label for="totalBill" id="totalLabel">💰</label>
+      <input type="text" inputmode="decimal" id="totalBill" placeholder="Total de la cuenta" oninput="onTotalChange()" onblur="reformatAmountField(this); S.total=this.value; save();" />
     </div>
-    <button class="btn-share" onclick="exportarArchivo()">📤 Compartir</button>
-    <button class="btn-reset" onclick="resetAll()" title="Nueva cuenta">🗑️</button>
+    <div class="top-bar-row top-bar-selects">
+      <select id="currencySelect" class="currency-select" onchange="setCurrency(this.value)" title="Moneda">
+        <option value="CLP">🇨🇱 CLP</option>
+        <option value="USD">🇺🇸 USD</option>
+        <option value="ARS">🇦🇷 ARS</option>
+        <option value="EUR">🇪🇺 EUR</option>
+      </select>
+      <select id="tipSelect" class="tip-select" onchange="setPct(parseInt(this.value,10))" title="Propina">
+        <option value="0">sin</option>
+        <option value="10">10%</option>
+        <option value="15">15%</option>
+        <option value="20">20%</option>
+      </select>
+    </div>
+    <div class="top-bar-row top-bar-actions">
+      <button class="btn-share" onclick="exportarArchivo()">📤 Compartir</button>
+      <button class="btn-info" onclick="openInfoModal()" title="¿Cómo funciona?">ⓘ</button>
+      <button class="btn-reset" onclick="resetAll()" title="Nueva cuenta">🗑️</button>
+    </div>
   </div>
 
   <!-- Banner de lock -->
@@ -432,6 +520,7 @@
 <!-- Modal compartir -->
 <div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
   <div class="modal">
+    <div class="modal-handle"></div>
     <div class="modal-header">
       <h3>📋 Detalle para compartir</h3>
       <button class="modal-close" onclick="closeModal()">✕</button>
@@ -446,7 +535,35 @@
         <button class="btn-copy-relay" id="btnCopyRelay" onclick="copiarRelayLink()"></button>
       </div>
       <p class="modal-relay-warning" id="modalRelayWarning" style="display:none"></p>
-      <p class="modal-relay-done" id="modalRelayDone" style="display:none"></p>
+      <div class="modal-done-card" id="modalRelayDone" style="display:none">
+        <div class="modal-done-title" id="modalDoneTitle"></div>
+        <div class="modal-done-subtitle" id="modalDoneSubtitle"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal ¿cómo funciona? -->
+<div class="modal-overlay" id="infoModalOverlay" onclick="if(event.target===this)closeInfoModal()">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <h3 id="infoModalTitle"></h3>
+      <button class="modal-close" onclick="closeInfoModal()">✕</button>
+    </div>
+    <ol class="info-steps" id="infoSteps"></ol>
+  </div>
+</div>
+
+<!-- Modal confirmación/aviso genérico (reemplaza confirm()/alert() nativos) -->
+<div class="modal-overlay" id="customDialogOverlay" onclick="if(event.target===this)resolveDialog(false)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h3 class="custom-dialog-title" id="customDialogTitle"></h3>
+    <p class="custom-dialog-message" id="customDialogMessage"></p>
+    <div class="custom-dialog-actions">
+      <button class="btn-dialog-cancel" id="customDialogCancel" onclick="resolveDialog(false)"></button>
+      <button class="btn-dialog-ok" id="customDialogOk" onclick="resolveDialog(true)"></button>
     </div>
   </div>
 </div>
@@ -497,7 +614,7 @@ async function load() {
     }
     try {
       const decoded = await decodeStateFromHash(location.hash.slice(3));
-      if (hasExisting && !confirm(T.toast.confirmOverwrite)) {
+      if (hasExisting && !await customConfirm(T.toast.confirmOverwrite)) {
         history.replaceState(null, '', location.pathname + location.search);
         loadFromLocalStorage();
         return;
@@ -540,6 +657,11 @@ async function exportarArchivo() {
     } else {
       txt += T.export.totalNoTip(fmt(total)) + '\n';
     }
+  }
+
+  const payer = S.personas.find(p => p.paid);
+  if (payer) {
+    txt += T.export.paidBy(payer.name || T.persona.removeConfirmFallbackName) + '\n';
   }
 
   // Compartidos
@@ -628,6 +750,45 @@ function closeModal() {
   document.getElementById('modalOverlay').classList.remove('show');
 }
 
+function openInfoModal() {
+  document.getElementById('infoModalOverlay').classList.add('show');
+}
+
+function closeInfoModal() {
+  document.getElementById('infoModalOverlay').classList.remove('show');
+}
+
+// ─────────────────────────────────────────────────────
+//  MODAL DE CONFIRMACIÓN/AVISO (reemplaza confirm()/alert())
+// ─────────────────────────────────────────────────────
+let _dialogResolve = null;
+
+function showDialog({ title, message, okText, cancelText, showCancel }) {
+  return new Promise(resolve => {
+    _dialogResolve = resolve;
+    document.getElementById('customDialogTitle').textContent = title;
+    document.getElementById('customDialogMessage').textContent = message;
+    const cancelBtn = document.getElementById('customDialogCancel');
+    cancelBtn.textContent = cancelText || T.dialog.cancel;
+    cancelBtn.style.display = showCancel ? 'inline-flex' : 'none';
+    document.getElementById('customDialogOk').textContent = okText || T.dialog.ok;
+    document.getElementById('customDialogOverlay').classList.add('show');
+  });
+}
+
+function resolveDialog(result) {
+  document.getElementById('customDialogOverlay').classList.remove('show');
+  if (_dialogResolve) { _dialogResolve(result); _dialogResolve = null; }
+}
+
+function customConfirm(message, opts = {}) {
+  return showDialog({ title: T.dialog.confirmTitle, message, showCancel: true, ...opts });
+}
+
+function customAlert(message, opts = {}) {
+  return showDialog({ title: T.dialog.infoTitle, message, showCancel: false, ...opts });
+}
+
 function copiarDetalle() {
   const txt = document.getElementById('modalText').value;
   navigator.clipboard.writeText(txt).then(() => {
@@ -678,15 +839,16 @@ function bumpUsageCounter() {
     .catch(() => {});
 }
 
-function resetAll() {
-  if (!confirm(T.topbar.confirmReset)) return;
+async function resetAll() {
+  if (!await customConfirm(T.topbar.confirmReset)) return;
   const keepCurrency = S.currency;
   S = { total: '', pct: '', currency: keepCurrency, personaCount: 0, shared: [], personas: [] };
   save();
   document.getElementById('totalBill').value = '';
-  updateTipChips();
+  updateTipSelect();
   updateCurrencySelect();
-  renderAll();
+  renderShared();
+  await addPersona(); // igual que el arranque inicial: siempre parte con 1 persona
 }
 
 function showToast(msg) {
@@ -700,15 +862,13 @@ function onTotalChange() { S.total = document.getElementById('totalBill').value;
 function setPct(v) {
   S.pct = v;
   save();
-  updateTipChips();
+  updateTipSelect();
   recalc();
 }
 
-function updateTipChips() {
-  const val = parseFloat(S.pct) || 0;
-  document.querySelectorAll('#tipChips button').forEach(b => {
-    b.classList.toggle('active', parseFloat(b.dataset.val) === val);
-  });
+function updateTipSelect() {
+  const sel = document.getElementById('tipSelect');
+  if (sel) sel.value = String(parseFloat(S.pct) || 0);
 }
 
 // ─────────────────────────────────────────────────────
@@ -767,13 +927,26 @@ function randomAnimal() {
   return emojis[Math.floor(Math.random() * emojis.length)];
 }
 
-function addPersona() {
+async function addPersona() {
+  const unnamed = S.personas.find(p => !p.name || !p.name.trim());
+  if (unnamed) {
+    await customAlert(T.persona.needNameBeforeAdding);
+    focusPersonaNameInput(unnamed.id);
+    return;
+  }
   S.personaCount = (S.personaCount || 0) + 1;
   const id = S.personaCount;
-  S.personas.push({ id, name: '', emoji: randomAnimal(), items: [] });
+  S.personas.push({ id, name: '', emoji: randomAnimal(), items: [], paid: false });
   save();
   renderPersonas();
   addItem(id);       // auto-agrega un ítem vacío
+}
+
+function focusPersonaNameInput(id) {
+  const input = document.getElementById('pname-' + id);
+  if (!input) return;
+  input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  input.focus();
 }
 
 function changePersonaEmoji(id) {
@@ -781,7 +954,10 @@ function changePersonaEmoji(id) {
   if (p) { p.emoji = randomAnimal(); save(); renderPersonas(); }
 }
 
-function removePersona(id) {
+async function removePersona(id) {
+  const p = S.personas.find(p => p.id === id);
+  const label = (p && p.name) ? p.name : T.persona.removeConfirmFallbackName;
+  if (!await customConfirm(T.persona.confirmRemove(label))) return;
   S.personas = S.personas.filter(p => p.id !== id);
   save(); renderPersonas(); recalc();
 }
@@ -789,6 +965,12 @@ function removePersona(id) {
 function updatePersonaName(id, val) {
   const p = S.personas.find(p => p.id === id);
   if (p) { p.name = val; save(); recalc(); }
+}
+
+function setPagador(id) {
+  const wasPaid = !!S.personas.find(p => p.id === id)?.paid;
+  S.personas.forEach(p => { p.paid = (p.id === id) && !wasPaid; });
+  save(); renderPersonas();
 }
 
 // ─────────────────────────────────────────────────────
@@ -830,7 +1012,7 @@ function renderPersonas() {
 }
 
 function buildCard(p) {
-  const card = el('div', 'persona-card');
+  const card = el('div', 'persona-card' + (p.paid ? ' is-payer' : ''));
 
   // header
   if (!p.emoji) p.emoji = randomAnimal();
@@ -839,8 +1021,10 @@ function buildCard(p) {
   const hdr = el('div', 'persona-header');
   hdr.innerHTML = `
     <button class="btn-persona-emoji" onclick="changePersonaEmoji(${p.id})" title="${T.persona.emojiTitle}">${p.emoji}</button>
-    <input type="text" placeholder="${ph}" value="${esc(p.name)}"
+    <input type="text" id="pname-${p.id}" placeholder="${ph}" value="${esc(p.name)}"
       oninput="updatePersonaName(${p.id},this.value)" />
+    <button class="btn-persona-paid${p.paid ? ' is-paid' : ''}" onclick="setPagador(${p.id})"
+      title="${p.paid ? T.persona.unmarkPaidTitle : T.persona.markPaidTitle}">👑</button>
     <button class="btn-remove-persona" onclick="removePersona(${p.id})" title="${T.persona.removeTitle}">✕</button>
   `;
   card.appendChild(hdr);
@@ -887,6 +1071,7 @@ function buildCard(p) {
   const foot = el('div', 'persona-footer');
   foot.innerHTML = `
     <button class="btn-add-item" onclick="addItem(${p.id})" title="${T.persona.addItemTitle}">${T.persona.addItem}</button>
+    ${p.paid ? `<span class="paid-badge">${T.persona.paidBadge}</span>` : ''}
     <div class="persona-total" id="pt-${p.id}">${fmt(0)}</div>
   `;
   card.appendChild(foot);
@@ -926,15 +1111,38 @@ function detectCurrency() {
   return 'CLP';
 }
 
-function setCurrency(cur) {
+function hasAnyAmount() {
+  if (S.total && String(S.total).trim()) return true;
+  if (S.shared.some(i => i.price && String(i.price).trim())) return true;
+  if (S.personas.some(p => p.items.some(i => i.price && String(i.price).trim()))) return true;
+  return false;
+}
+
+async function setCurrency(cur) {
   if (!CURRENCIES[cur]) return;
+  if (S.currency === cur) return;
+
+  // No hacemos conversión "de mentira" (relabelear el mismo número como si
+  // fuera otra moneda sería engañoso: 20.000 CLP y 20.000 USD son montos
+  // muy distintos) ni conversión real (requeriría un tipo de cambio en vivo,
+  // que agrega dependencia externa y no siempre refleja lo que de verdad se
+  // pagó). Si ya hay montos escritos, avisamos y limpiamos para no arrastrar
+  // un número que ya no significa lo mismo.
+  if (hasAnyAmount() && !await customConfirm(T.topbar.confirmCurrencyChange)) {
+    updateCurrencySelect(); // revierte el <select> a la moneda actual
+    return;
+  }
+
   S.currency = cur;
+  S.total = '';
+  S.shared.forEach(item => { item.price = ''; });
+  S.personas.forEach(p => { p.items.forEach(item => { item.price = ''; }); });
+
   save();
   updateCurrencySelect();
-  reformatAmountField(document.getElementById('totalBill'));
-  S.total = document.getElementById('totalBill').value;
-  save();
-  renderAll(); // reconstruye items y recalcula, reformateando cada input de monto
+  const totalInput = document.getElementById('totalBill');
+  if (totalInput) totalInput.value = '';
+  renderAll();
 }
 
 function updateCurrencySelect() {
@@ -1272,15 +1480,13 @@ function applyStrings() {
       .join('');
   }
 
-  const pctLabel = document.querySelector('.pct-label');
-  if (pctLabel) pctLabel.textContent = T.topbar.tipLabel;
-
-  document.querySelectorAll('#tipChips button').forEach(btn => {
-    const pct = parseFloat(btn.dataset.val) || 0;
-    btn.title = T.topbar.tipOptionTitle(pct);
-  });
-  const tip0 = document.querySelector('#tipChips button[data-val="0"]');
-  if (tip0) tip0.textContent = T.topbar.tipNone;
+  const tipSel = document.getElementById('tipSelect');
+  if (tipSel) {
+    tipSel.title = T.topbar.tipLabel;
+    tipSel.innerHTML = [0, 10, 15, 20].map(v =>
+      `<option value="${v}" title="${esc(T.topbar.tipOptionTitle(v))}">${v === 0 ? esc(T.topbar.tipNone) : v + '%'}</option>`
+    ).join('');
+  }
 
   const shareBtn = document.querySelector('.btn-share');
   if (shareBtn) { shareBtn.textContent = T.topbar.share; shareBtn.title = T.topbar.shareTitle; }
@@ -1314,8 +1520,7 @@ function applyStrings() {
 
   const modalTitle = document.querySelector('.modal-header h3');
   if (modalTitle) modalTitle.textContent = T.modal.title;
-  const modalCloseBtn = document.querySelector('.modal-close');
-  if (modalCloseBtn) modalCloseBtn.title = T.modal.closeTitle;
+  document.querySelectorAll('.modal-close').forEach(btn => { btn.title = T.modal.closeTitle; });
 
   const copyBtn = document.getElementById('btnCopy');
   if (copyBtn) copyBtn.textContent = T.modal.copy;
@@ -1324,8 +1529,21 @@ function applyStrings() {
   if (relayLabel) { relayLabel.textContent = T.modal.relayLabel; relayLabel.title = T.modal.relayLabelTitle; }
   const copyRelayBtn = document.getElementById('btnCopyRelay');
   if (copyRelayBtn) copyRelayBtn.textContent = T.modal.copyRelay;
-  const relayDoneEl = document.getElementById('modalRelayDone');
-  if (relayDoneEl) relayDoneEl.textContent = T.modal.relayDone;
+  const doneTitleEl = document.getElementById('modalDoneTitle');
+  if (doneTitleEl) doneTitleEl.textContent = T.modal.doneTitle;
+  const doneSubtitleEl = document.getElementById('modalDoneSubtitle');
+  if (doneSubtitleEl) doneSubtitleEl.textContent = T.modal.doneSubtitle;
+
+  const infoBtn = document.querySelector('.btn-info');
+  if (infoBtn) infoBtn.title = T.info.buttonTitle;
+  const infoTitleEl = document.getElementById('infoModalTitle');
+  if (infoTitleEl) infoTitleEl.textContent = T.info.title;
+  const infoStepsEl = document.getElementById('infoSteps');
+  if (infoStepsEl) {
+    infoStepsEl.innerHTML = T.info.steps.map((step, i) =>
+      `<li><span class="step-num">${i + 1}</span><span>${esc(step)}</span></li>`
+    ).join('');
+  }
 }
 
 // ─────────────────────────────────────────────────────
@@ -1340,7 +1558,7 @@ function applyStrings() {
   updateCurrencySelect();
 
   if (S.total) document.getElementById('totalBill').value = formatAmountInput(S.total);
-  updateTipChips();
+  updateTipSelect();
 
   if (S.personas.length === 0) {
     addPersona();   // siempre arranca con al menos una persona
@@ -1350,5 +1568,6 @@ function applyStrings() {
 })();
 </script>
 
+<script defer src="/_vercel/insights/script.js"></script>
 </body>
 </html>

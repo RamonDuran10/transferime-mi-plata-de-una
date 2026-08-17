@@ -5,16 +5,16 @@
 //  <script src="es.js"> de index.html por el nuevo archivo.
 // ─────────────────────────────────────────────────────
 const T = {
-  pageTitle: '¿Paga la wea?',
+  pageTitle: '¿Paga tu wea?',
 
   header: {
     emoji: '🍻',
-    title: '¿Paga la wea po´?'
+    title: '¿Paga tu wea po´?'
   },
 
   usageCounter: {
     emoji: '🤝',
-    suffix: n => `${n.toLocaleString('es-CL')} atados evitados por plata`
+    suffix: n => `${n.toLocaleString('es-CL')} amistades salvadas`
   },
 
   topbar: {
@@ -30,7 +30,8 @@ const T = {
     resetTitle: 'Borrar todo',
     shareFriends: '🔗 Compartir la app',
     shareFriendsTitle: 'Saca el QR o el link para los demás',
-    confirmReset: '¿Empezar de cero? Se borra todo lo que llevamos 🗑️'
+    confirmReset: '¿Empezar de cero? Se borra todo lo que llevamos 🗑️',
+    confirmCurrencyChange: 'Cambiar de moneda borra los montos que ya escribiste (no se convierten automáticamente, para no calcular mal). ¿Continuar?'
   },
 
   lock: {
@@ -60,10 +61,16 @@ const T = {
 
   persona: {
     animalEmojis: ['🐵','🦊','🐼','🐸','🦁','🐮','🐧','🦄','🐝','🦋','🐨','🐢','🐙','🐰','🐯','🐷'],
-    nicknamePlaceholders: ['¿Cómo le ponemos?', 'Apodo', '¿Quién es?', 'El de al lado', 'El hambriento 😅'],
+    nicknamePlaceholders: ['¿Cómo le ponemos?', 'Apodo', '¿Quién es?', 'El gordito', 'El hambriento','el mojojo'],
     defaultNames: ['El misterio', 'El callado', 'El invitado', 'El socio', 'El caserito'],
     emojiTitle: 'Cambiar carita',
     removeTitle: 'Sacar',
+    confirmRemove: name => `¿Sacar a ${name} del grupo? Se borran sus pedidos`,
+    removeConfirmFallbackName: 'esta persona',
+    needNameBeforeAdding: 'Ponle nombre.. ¿como le vas a cobrar despues? 🙏',
+    markPaidTitle: '👑 Marcar como quien pagó la cuenta',
+    unmarkPaidTitle: 'Quitar la corona',
+    paidBadge: '👑 Pagó',
     columnWhat: '¿Qué pidió?',
     columnPrice: 'Precio',
     itemPlaceholder: 'lo que se pidió',
@@ -103,7 +110,26 @@ const T = {
     copyRelay: 'Copiar link',
     copiedRelay: '✓ ¡Copiado!',
     relayWarning: 'El link se está poniendo largo — igual funciona, pero conviene cerrar la cuenta pronto 😅',
-    relayDone: '✅ La cuenta ya cuadra — no hace falta invitar a nadie más'
+    doneTitle: '🎉 ¡Listo, quedó la cuenta lista!',
+    doneSubtitle: 'Hicimos lo que pudimos — si aun así no te pagan, ya no es cosa nuestra 😂🤷'
+  },
+
+  info: {
+    buttonTitle: '¿Cómo funciona?',
+    title: '🤔 ¿Cómo se juega esto?',
+    steps: [
+      '💰 Anota el total de la boleta y elige la moneda.',
+      '🐵 Suma a la gente y anota lo que pidió cada uno (o algo pa\' compartir entre todos, arriba).',
+      '💸 Métele propina si cae.',
+      '⚖️ Cuando el veredicto cuadre, mándala al grupo — si falta gente y no quieres sacar la cuenta tu, comparte el link pa\' que sigan sumando lo suyo.'
+    ]
+  },
+
+  dialog: {
+    confirmTitle: '⚠️ Confirma esto',
+    infoTitle: '👀 Ojito',
+    ok: 'Ya, dale',
+    cancel: 'Mejor no'
   },
 
   toast: {
@@ -117,6 +143,7 @@ const T = {
     subtotal: amt => `💰 Subtotal: ${amt}`,
     tip: (pct, amt) => `📊 Propina (${pct}%): +${amt}`,
     total: amt => `💵 Total final: ${amt}`,
+    paidBy: name => `👑 Pagó la cuenta: ${name}`,
     totalNoTip: amt => `💰 Total: ${amt}`,
     sharedHeader: n => `🍻 *Para compartir* (${n} personas):`,
     sharedItemDefault: 'Compartido',
