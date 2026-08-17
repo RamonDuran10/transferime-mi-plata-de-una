@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>¿Quién debe qué?</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    @keyframes wiggle { 0%,100% { transform: rotate(-6deg); } 50% { transform: rotate(6deg); } }
+
+    body {
+      font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #FFF3E0;
+      background-image: radial-gradient(#FFD9A0 2px, transparent 2px);
+      background-size: 26px 26px;
+      min-height: 100vh;
+      padding: 16px 12px 40px;
+      color: #1B1A2E;
+      font-size: 13px;
+    }
+
+    h1 {
+      text-align: center; font-family: 'Baloo 2', cursive; font-size: 1.5rem; font-weight: 800;
+      margin-bottom: 12px; color: #1B1A2E; letter-spacing: -.5px;
+    }
+    h1 .emoji { display: inline-block; animation: wiggle 2.4s ease-in-out infinite; }
+
+    .main-card {
+      width: 80%;
+      max-width: 1200px;
+      margin: 0 auto;
+      background: #fff;
+      border: 2.5px solid #1B1A2E;
+      border-radius: 18px;
+      padding: 14px;
+      box-shadow: 4px 4px 0 #1B1A2E;
+    }
+
+    /* ── Top bar ── */
+    .top-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+    .top-bar label { font-weight: 700; white-space: nowrap; font-size: 0.82rem; }
+    .top-bar input {
+      flex: 1; padding: 7px 10px;
+      border: 2px solid #1B1A2E; border-radius: 10px;
+      font-size: 0.95rem; font-weight: 700; color: #1B1A2E;
+      background: #FFFDF7;
+      outline: none; transition: box-shadow .15s;
+    }
+    .top-bar input:focus { box-shadow: 0 0 0 3px #FFD9A0; }
+
+    .btn-receipt {
+      padding: 7px 11px; background: #EAF6FF; color: #12609E;
+      border: 2px solid #1B1A2E; border-radius: 10px; font-size: 0.78rem; font-weight: 700;
+      cursor: pointer; white-space: nowrap; transition: all .15s;
+    }
+    .btn-receipt:hover { background: #D7EDFF; }
+    .btn-receipt.loaded { background: #4DABF7; color: #fff; }
+    .btn-receipt.loaded:hover { background: #2b96e8; }
+
+    /* ── Lock mode ── */
+    .locked input, .locked select { pointer-events: none !important; background: #F3F0FF !important; color: #4a5568 !important; }
+    .locked .btn-add-item, .locked .btn-dup-item, .locked .btn-remove-item,
+    .locked .btn-remove-persona, .locked .btn-add-persona,
+    .locked .btn-add-shared { display: none !important; }
+    .locked #totalBill { pointer-events: none; background: #F3F0FF; }
+    .locked .tip-chips button { pointer-events: none; opacity: .6; }
+    .lock-banner {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 7px 10px; background: #B2F2BB; border: 2px solid #1B1A2E;
+      border-radius: 12px; margin-bottom: 10px; font-size: 0.8rem; color: #1B1A2E; font-weight: 700;
+    }
+    .btn-unlock {
+      background: #fff; border: 2px solid #1B1A2E; color: #1B1A2E;
+      border-radius: 8px; padding: 3px 9px; font-size: 0.72rem; cursor: pointer; font-weight: 700;
+    }
+    .btn-unlock:hover { background: #FFF3E0; }
+
+    .btn-share {
+      padding: 7px 12px; background: #6C5CE7; color: #fff;
+      border: 2px solid #1B1A2E; border-radius: 10px; font-size: 0.78rem; font-weight: 700;
+      cursor: pointer; white-space: nowrap; box-shadow: 0 2px 0 #1B1A2E; transition: all .1s;
+    }
+    .btn-share:hover { background: #5A4BD6; }
+    .btn-share:active { transform: translateY(2px); box-shadow: none; }
+    .btn-reset {
+      padding: 7px 9px; background: #fff; color: #1B1A2E;
+      border: 2px solid #1B1A2E; border-radius: 10px; font-size: 0.78rem;
+      cursor: pointer; transition: all .15s;
+    }
+    .btn-reset:hover { background: #FFE3E3; border-color: #FF5D5D; }
+
+
+    /* ── Shared card ── */
+    .shared-card {
+      border: 2.5px dashed #4DABF7; border-radius: 14px;
+      overflow: hidden; margin-bottom: 10px; background: #EAF6FF;
+    }
+    .shared-header {
+      display: flex; align-items: center; gap: 6px;
+      padding: 7px 10px; background: #BEE3F8;
+      font-family: 'Baloo 2', cursive; font-size: 0.85rem; font-weight: 800; color: #12609E;
+    }
+    .shared-header span.title { flex: 1; }
+    .shared-total-badge {
+      font-size: 0.72rem; background: #4DABF7; color: #fff;
+      border: 1.5px solid #1B1A2E; border-radius: 999px; padding: 2px 9px; font-weight: 700;
+    }
+
+    /* ── Personas ── */
+    .personas-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .persona-card {
+      border: 2.5px solid #1B1A2E; border-radius: 16px; overflow: hidden;
+      box-shadow: 3px 3px 0 #1B1A2E; background: #fff;
+    }
+    .persona-header { display: flex; align-items: center; gap: 6px; background: #FFFDF7; padding: 7px 10px; }
+    .persona-header input {
+      flex: 1; border: 2px solid #1B1A2E; background: #fff; border-radius: 8px;
+      padding: 4px 8px; font-family: 'Baloo 2', cursive; font-size: 0.85rem; font-weight: 700; color: #1B1A2E;
+      outline: none; transition: box-shadow .15s;
+    }
+    .persona-header input:focus { box-shadow: 0 0 0 3px #FFD9A0; }
+    .persona-header input::placeholder { color: #A9A4BD; font-weight: 400; }
+    .btn-persona-emoji {
+      flex: 0 0 auto; width: 32px; height: 32px; font-size: 1.05rem; line-height: 1;
+      border: 2px solid #1B1A2E; border-radius: 9px; background: #FFD9A0; cursor: pointer;
+      transition: transform .15s;
+    }
+    .btn-persona-emoji:hover { transform: rotate(-8deg) scale(1.05); }
+    .btn-remove-persona {
+      background: #fff; border: 2px solid #1B1A2E; cursor: pointer; color: #FF5D5D;
+      font-size: 0.75rem; font-weight: 700; width: 24px; height: 24px; border-radius: 7px; transition: background .15s;
+    }
+    .btn-remove-persona:hover { background: #FFE3E3; }
+
+    /* ── Items ── */
+    .items-list { padding: 7px 10px; display: flex; flex-direction: column; gap: 4px; }
+    .items-header { display: grid; gap: 4px; padding: 0 0 2px; }
+    .items-header span { font-size: 0.65rem; color: #6B6684; font-weight: 600; }
+    .item-row { display: grid; gap: 4px; align-items: center; }
+
+    /* cols: name | price | dup | del */
+    .items-header.cols4, .item-row.cols4 { grid-template-columns: 1fr 88px 22px 22px; }
+    .items-header.cols4s, .item-row.cols4s { grid-template-columns: 1fr 88px 22px 22px; }
+
+    .item-row input {
+      padding: 4px 7px; border: 2px solid #E4E0F0; border-radius: 8px;
+      font-size: 0.78rem; color: #1B1A2E; outline: none; transition: border-color .15s; width: 100%;
+      background: #FAFAFE;
+    }
+    .item-row input:focus { border-color: #6C5CE7; }
+    .item-row input::placeholder { color: #A9A4BD; }
+    .item-row input.price { font-weight: 700; }
+
+    .btn-dup-item, .btn-remove-item {
+      background: none; border: none; cursor: pointer;
+      font-size: 0.8rem; line-height: 1; padding: 3px; border-radius: 6px; transition: color .15s;
+    }
+    .btn-dup-item { color: #6C5CE7; } .btn-dup-item:hover { color: #4a3ec9; background: #F3F0FF; }
+    .btn-remove-item { color: #C9C3E0; } .btn-remove-item:hover { color: #FF5D5D; background: #FFE3E3; }
+
+    /* ── Footer ── */
+    .persona-footer {
+      padding: 5px 10px 8px; display: flex; align-items: center;
+      justify-content: space-between; gap: 8px;
+    }
+    .btn-add-item {
+      background: #fff; border: 2px dashed #C9C3E0; color: #6C5CE7;
+      border-radius: 8px; padding: 4px 10px; font-size: 0.72rem; font-weight: 700; cursor: pointer; transition: all .15s;
+    }
+    .btn-add-item:hover { border-color: #6C5CE7; background: #F3F0FF; }
+    .persona-total { font-family: 'Baloo 2', cursive; font-size: 0.9rem; font-weight: 800; color: #6C5CE7; white-space: nowrap; }
+
+    /* ── Add persona ── */
+    .btn-add-persona {
+      width: 100%; margin-top: 10px; padding: 9px;
+      background: #6C5CE7; color: #fff; border: 2.5px solid #1B1A2E; border-radius: 13px;
+      font-family: 'Baloo 2', cursive; font-size: 0.9rem; font-weight: 700; cursor: pointer;
+      box-shadow: 0 3px 0 #1B1A2E; transition: all .1s;
+    }
+    .btn-add-persona:hover { background: #5A4BD6; }
+    .btn-add-persona:active { transform: translateY(3px); box-shadow: none; }
+
+    /* ── Resumen ── */
+    .summary {
+      margin-top: 14px; padding: 12px; border-radius: 16px;
+      background: #1B1A2E; color: #fff; border: 2.5px solid #1B1A2E; box-shadow: 4px 4px 0 #FFB020;
+    }
+    .summary h2 { font-family: 'Baloo 2', cursive; font-size: 1rem; font-weight: 800; margin-bottom: 8px; color: #fff; }
+    .summary-rows { display: flex; flex-direction: column; gap: 5px; }
+    .summary-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 6px 10px; background: #F7F5FF; border-radius: 10px; font-size: 0.8rem;
+    }
+    .summary-row .name { font-weight: 600; color: #1B1A2E; }
+    .summary-row .amount { font-family: 'Baloo 2', cursive; font-weight: 800; color: #1B1A2E; }
+    .summary-row-rico { background: #FFD9A0; }
+    .summary-shared-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 5px 10px; background: #EAF6FF; border-radius: 10px;
+      font-size: 0.75rem; color: #12609E; font-weight: 600;
+    }
+    .summary-total-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 7px 10px; border-radius: 10px; font-size: 0.85rem; font-weight: 700; margin-top: 3px;
+    }
+    .summary-total-row.ok      { background: #B2F2BB; color: #1B1A2E; }
+    .summary-total-row.warning { background: #FFF3BF; color: #1B1A2E; }
+    .summary-total-row.error   { background: #FFE3E3; color: #1B1A2E; }
+    .badge { font-size: 0.68rem; padding: 2px 9px; border-radius: 999px; font-weight: 700; border: 1.5px solid #1B1A2E; }
+    .badge-ok    { background: #12B886; color: #fff; }
+    .badge-warn  { background: #FFB020; color: #1B1A2E; }
+    .badge-error { background: #FF5D5D; color: #fff; }
+
+    /* ── Shared portion inside persona card ── */
+    .shared-portion {
+      padding: 5px 10px 7px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      border-top: 2px dashed #BEE3F8;
+      background: #EAF6FF;
+    }
+    .shared-portion-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.75rem;
+      color: #12609E;
+      font-weight: 600;
+      padding: 2px 0;
+    }
+    .shared-portion-name { font-weight: 500; }
+    .shared-portion-amt  { font-weight: 800; white-space: nowrap; }
+
+    /* ── Modal compartir ── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(27,26,46,0.6); z-index: 100;
+      align-items: center; justify-content: center; padding: 16px;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal {
+      background: #fff; border: 2.5px solid #1B1A2E; border-radius: 16px; padding: 16px;
+      width: 100%; max-width: 420px; box-shadow: 5px 5px 0 #1B1A2E;
+    }
+    .modal-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 10px;
+    }
+    .modal-header h3 { font-family: 'Baloo 2', cursive; font-size: 0.95rem; font-weight: 800; color: #1B1A2E; }
+    .modal-close {
+      background: none; border: none; cursor: pointer; color: #6B6684; font-size: 1rem;
+    }
+    .modal textarea {
+      width: 100%; height: 260px; resize: none;
+      border: 2px solid #1B1A2E; border-radius: 10px;
+      padding: 10px; font-size: 0.82rem; line-height: 1.6;
+      color: #1B1A2E; font-family: inherit; outline: none;
+      background: #FAFAFE;
+    }
+    .btn-copy {
+      margin-top: 10px; width: 100%; padding: 9px;
+      background: #6C5CE7; color: #fff; border: 2.5px solid #1B1A2E; border-radius: 10px;
+      font-family: 'Baloo 2', cursive; font-size: 0.85rem; font-weight: 700; cursor: pointer;
+      box-shadow: 0 3px 0 #1B1A2E; transition: all .1s;
+    }
+    .btn-copy:hover { background: #5A4BD6; }
+    .btn-copy:active { transform: translateY(3px); box-shadow: none; }
+    .btn-copy.copied { background: #12B886; }
+
+    /* toast */
+    .toast {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      background: #1B1A2E; color: #fff; padding: 8px 18px; border-radius: 999px;
+      font-size: 0.82rem; font-weight: 600; opacity: 0; pointer-events: none;
+      transition: opacity .3s; z-index: 999; border: 2px solid #FFB020;
+    }
+    .toast.show { opacity: 1; }
+
+    /* ── Chips de propina ── */
+    .top-bar .pct-label { font-size: 0.78rem; color: #6B6684; font-weight: 600; white-space: nowrap; }
+    .tip-chips { display: flex; gap: 4px; }
+    .tip-chips button {
+      font-family: 'Baloo 2', cursive; font-weight: 700; font-size: 0.78rem;
+      padding: 7px 10px; border: 2px solid #1B1A2E; border-radius: 9px;
+      background: #fff; color: #1B1A2E; cursor: pointer;
+      box-shadow: 0 2px 0 #1B1A2E; transition: all .1s;
+    }
+    .tip-chips button:hover { background: #FFF3E0; }
+    .tip-chips button:active { transform: translateY(2px); box-shadow: none; }
+    .tip-chips button.active { background: #FFB020; box-shadow: 0 2px 0 #1B1A2E; }
+
+    @media (max-width: 700px) {
+      .main-card { width: 100%; }
+      .personas-list { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 480px) {
+      .items-header.cols4, .item-row.cols4,
+      .items-header.cols4s, .item-row.cols4s { grid-template-columns: 1fr 74px 20px 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<h1><span class="emoji">🍕</span> ¿Quién debe qué?</h1>
+
+<div class="main-card">
+
+  <div class="top-bar">
+    <label for="totalBill">💰</label>
+    <input type="number" id="totalBill" placeholder="Total de la cuenta" min="0" step="0.01" oninput="onTotalChange()" />
+    <span class="pct-label">Propina</span>
+    <div class="tip-chips" id="tipChips">
+      <button data-val="0" onclick="setPct(0)">sin</button>
+      <button data-val="10" onclick="setPct(10)">10%</button>
+      <button data-val="15" onclick="setPct(15)">15%</button>
+      <button data-val="20" onclick="setPct(20)">20%</button>
+    </div>
+    <button class="btn-share" onclick="exportarArchivo()">📤 Compartir</button>
+    <button class="btn-reset" onclick="resetAll()" title="Nueva cuenta">🗑️</button>
+  </div>
+
+  <!-- Banner de lock -->
+  <div class="lock-banner" id="lockBanner" style="display:none">
+    <span>🔒 Todo cuadra — solo lectura</span>
+    <button class="btn-unlock" onclick="unlock()">✏️ Editar</button>
+  </div>
+
+  <!-- Panel boleta -->
+  <div id="receiptPanel" style="display:none;margin-bottom:10px;border:1.5px solid #e2e8f0;border-radius:8px;overflow:hidden;">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:5px 10px;background:#f7fafc;font-size:.78rem;font-weight:600;color:#4a5568;">
+      <span>🧾 Boleta</span>
+      <button onclick="closeReceipt()" style="background:none;border:none;cursor:pointer;color:#a0aec0;font-size:.85rem;">✕</button>
+    </div>
+    <div style="max-height:420px;overflow-y:auto;text-align:center;background:#000;">
+      <img id="receiptImg" style="max-width:100%;max-height:420px;object-fit:contain;" />
+    </div>
+  </div>
+
+  <!-- Compartido entre todos -->
+  <div class="shared-card">
+    <div class="shared-header">
+      <span class="title">🍻 Para todos</span>
+      <span class="shared-total-badge" id="sharedBadge">$0 ÷ todos</span>
+    </div>
+    <div class="items-list" id="sharedList"></div>
+    <div class="persona-footer">
+      <button class="btn-add-item btn-add-shared" onclick="addSharedItem()">+ Agregar compartido</button>
+    </div>
+  </div>
+
+  <!-- Personas individuales -->
+  <div class="personas-list" id="personasList"></div>
+
+  <button class="btn-add-persona" onclick="addPersona()">+ Sumar al grupo</button>
+
+  <div class="summary">
+    <h2>🔨 El veredicto</h2>
+    <div class="summary-rows" id="summaryRows"></div>
+  </div>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<!-- Modal compartir -->
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>📋 Detalle para compartir</h3>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <textarea id="modalText" readonly></textarea>
+    <button class="btn-copy" id="btnCopy" onclick="copiarDetalle()">📋 Copiar</button>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────
+//  ESTADO
+// ─────────────────────────────────────────────────────
+const LS_KEY = 'dcv4'; // versión 4 — % por persona, no por ítem
+
+let S = {
+  total:          '',
+  pct:            '',   // propina global (%) para todos los ítems
+  personaCount:   0,
+  shared:         [],   // [{id, name, price}]
+  personas:       []    // [{id, name, items:[{id, name, price}]}]
+};
+
+// ─────────────────────────────────────────────────────
+//  PERSISTENCIA
+// ─────────────────────────────────────────────────────
+function save() {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(S)); } catch(e) {}
+}
+
+function load() {
+  // 1. Estado inyectado en archivo exportado
+  if (window.__estadoInicial) {
+    S = window.__estadoInicial;
+    showToast('📂 Cuenta cargada — agrega lo tuyo y vuelve a compartir!');
+    return;
+  }
+  // 2. localStorage
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && Array.isArray(parsed.personas)) S = parsed;
+    }
+  } catch(e) {}
+}
+
+function exportarArchivo() {
+  const total    = parseFloat(document.getElementById('totalBill').value) || 0;
+  const n        = S.personas.length;
+  const sharedAmt = sharedTotalConPct();
+  const sharedPP  = n > 0 ? sharedAmt / n : 0;
+  const results   = computeResults(total, sharedPP);
+  const sum       = results.reduce((s,r) => s + r.amount, 0);
+  const ok        = total > 0 && Math.abs(sum - total) < 1;
+
+  const gPct = parseFloat(S.pct) || 0;
+
+  let txt = '🍕 *Detalle de la cuenta*\n';
+  txt += '─────────────────────\n';
+
+  if (total > 0) {
+    if (gPct > 0) {
+      const baseTotal = total / (1 + gPct / 100);
+      const propinaMonto = total - baseTotal;
+      txt += `💰 Subtotal: ${fmt(baseTotal)}\n`;
+      txt += `📊 Propina (${gPct}%): +${fmt(propinaMonto)}\n`;
+      txt += `💵 Total: ${fmt(total)}\n`;
+    } else {
+      txt += `💰 Total: ${fmt(total)}\n`;
+    }
+  }
+
+  // Compartidos
+  const sharedConValor = S.shared.filter(i => parseFloat(i.price) > 0);
+  if (sharedConValor.length > 0 && n > 0) {
+    txt += '\n🍻 *Para todos* (' + n + ' personas):\n';
+    sharedConValor.forEach(i => {
+      const pr  = parseFloat(i.price) || 0;
+      const tot = pr * (1 + gPct / 100);
+      const label = i.name || 'Compartido';
+      txt += `  • ${label}: ${fmt(tot)} total → ${fmt(tot/n)} c/u\n`;
+    });
+  }
+
+  // Por persona
+  txt += '\n👥 *Lo que le toca a cada uno:*\n';
+  results.forEach((r, idx) => {
+    const p = S.personas[idx];
+    const isRico = results.every((x,i) => i === idx || x.amount <= r.amount) && results.some(x => Math.abs(x.amount - r.amount) > 1);
+    txt += `\n👤 *${r.name}*${isRico ? ' 😂' : ''}: ${fmt(r.amount)}\n`;
+    let basePersona = 0;
+    if (p && p.items.length > 0) {
+      p.items.forEach(item => {
+        const pr = parseFloat(item.price) || 0;
+        if (pr > 0) {
+          basePersona += pr;
+          const label = item.name || 'ítem';
+          txt += `  • ${label}: ${fmt(pr)}\n`;
+        }
+      });
+    }
+    if (sharedPP > 0) {
+      const baseSharedPP = sharedPP / (1 + gPct / 100);
+      basePersona += baseSharedPP;
+      txt += `  • Compartido: ${fmt(baseSharedPP)}\n`;
+    }
+    if (gPct > 0 && basePersona > 0) {
+      const propinaPers = r.amount - basePersona;
+      txt += `  📊 Propina (${gPct}%): +${fmt(propinaPers)}\n`;
+    }
+  });
+
+  txt += '\n─────────────────────\n';
+  txt += ok ? '✅ Cuadra perfecto 🎉' : `Suma: ${fmt(sum)}`;
+
+  document.getElementById('modalText').value = txt;
+  document.getElementById('btnCopy').textContent = '📋 Copiar';
+  document.getElementById('btnCopy').classList.remove('copied');
+  document.getElementById('modalOverlay').classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('show');
+}
+
+function copiarDetalle() {
+  const txt = document.getElementById('modalText').value;
+  navigator.clipboard.writeText(txt).then(() => {
+    const btn = document.getElementById('btnCopy');
+    btn.textContent = '✓ Copiado!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = '📋 Copiar'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+function resetAll() {
+  if (!confirm('¿Empezar de cero? Se borra todo 🗑️')) return;
+  S = { total: '', pct: '', personaCount: 0, shared: [], personas: [] };
+  save();
+  document.getElementById('totalBill').value = '';
+  updateTipChips();
+  renderAll();
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+function onTotalChange() { S.total = document.getElementById('totalBill').value; save(); recalc(); }
+
+function setPct(v) {
+  S.pct = v;
+  save();
+  updateTipChips();
+  recalc();
+}
+
+function updateTipChips() {
+  const val = parseFloat(S.pct) || 0;
+  document.querySelectorAll('#tipChips button').forEach(b => {
+    b.classList.toggle('active', parseFloat(b.dataset.val) === val);
+  });
+}
+
+// ─────────────────────────────────────────────────────
+//  COMPARTIDOS
+// ─────────────────────────────────────────────────────
+function addSharedItem() {
+  S.shared.push({ id: uid(), name: '', price: '' });
+  save(); renderShared(); renderPersonas();
+}
+
+function dupSharedItem(id) {
+  const orig = S.shared.find(i => i.id === id); if (!orig) return;
+  S.shared.splice(S.shared.indexOf(orig) + 1, 0, { ...orig, id: uid() });
+  save(); renderShared(); renderPersonas();
+}
+
+function removeSharedItem(id) {
+  S.shared = S.shared.filter(i => i.id !== id);
+  save(); renderShared(); renderPersonas();
+}
+
+function updateShared(id, field, val) {
+  const item = S.shared.find(i => i.id === id);
+  if (item) { item[field] = val; save(); renderPersonas(); recalc(); }
+}
+
+function renderShared() {
+  const c = document.getElementById('sharedList');
+  c.innerHTML = '';
+
+  if (S.shared.length > 0) {
+    const hdr = el('div', 'items-header cols4s');
+    hdr.innerHTML = `<span>¿Qué pidieron todos?</span><span>Precio</span><span></span><span></span>`;
+    c.appendChild(hdr);
+  }
+
+  S.shared.forEach(item => {
+    const row = el('div', 'item-row cols4s');
+    row.innerHTML = `
+      <input type="text"   placeholder="para todos"  value="${esc(item.name)}"
+        oninput="updateShared(${item.id},'name',this.value)" />
+      <input type="number" class="price" placeholder="Precio" value="${item.price}"
+        min="0" step="0.01" oninput="updateShared(${item.id},'price',this.value)" />
+      <button class="btn-dup-item"    onclick="dupSharedItem(${item.id})"    title="Duplicar">⧉</button>
+      <button class="btn-remove-item" onclick="removeSharedItem(${item.id})" title="Quitar">✕</button>
+    `;
+    c.appendChild(row);
+  });
+}
+
+// ─────────────────────────────────────────────────────
+//  PERSONAS
+// ─────────────────────────────────────────────────────
+const ANIMAL_EMOJIS = ['🐵','🦊','🐼','🐸','🦁','🐮','🐧','🦄','🐝','🦋','🐨','🐢','🐙','🐰','🐯','🐷'];
+
+function randomAnimal() {
+  return ANIMAL_EMOJIS[Math.floor(Math.random() * ANIMAL_EMOJIS.length)];
+}
+
+function addPersona() {
+  S.personaCount = (S.personaCount || 0) + 1;
+  const id = S.personaCount;
+  S.personas.push({ id, name: '', emoji: randomAnimal(), items: [] });
+  save();
+  renderPersonas();
+  addItem(id);       // auto-agrega un ítem vacío
+}
+
+function changePersonaEmoji(id) {
+  const p = S.personas.find(p => p.id === id);
+  if (p) { p.emoji = randomAnimal(); save(); renderPersonas(); }
+}
+
+function removePersona(id) {
+  S.personas = S.personas.filter(p => p.id !== id);
+  save(); renderPersonas(); recalc();
+}
+
+function updatePersonaName(id, val) {
+  const p = S.personas.find(p => p.id === id);
+  if (p) { p.name = val; save(); recalc(); }
+}
+
+// ─────────────────────────────────────────────────────
+//  ITEMS
+// ─────────────────────────────────────────────────────
+function addItem(pid) {
+  const p = S.personas.find(p => p.id === pid); if (!p) return;
+  p.items.push({ id: uid(), name: '', price: '' });
+  save(); renderPersonas();
+}
+
+function dupItem(pid, iid) {
+  const p = S.personas.find(p => p.id === pid); if (!p) return;
+  const orig = p.items.find(i => i.id === iid); if (!orig) return;
+  p.items.splice(p.items.indexOf(orig) + 1, 0, { ...orig, id: uid() });
+  save(); renderPersonas(); recalc();
+}
+
+function removeItem(pid, iid) {
+  const p = S.personas.find(p => p.id === pid); if (!p) return;
+  p.items = p.items.filter(i => i.id !== iid);
+  save(); renderPersonas(); recalc();
+}
+
+function updateItem(pid, iid, field, val) {
+  const p = S.personas.find(p => p.id === pid); if (!p) return;
+  const item = p.items.find(i => i.id === iid); if (!item) return;
+  item[field] = val; save(); recalc();
+}
+
+// ─────────────────────────────────────────────────────
+//  RENDER PERSONAS
+// ─────────────────────────────────────────────────────
+const nickPhs  = ['¿cómo le decimos?','Apodo del pana','¿quién es?','El de la derecha','El hambriento 😅'];
+const apodos   = ['El de la mesa','El tranquilo','El famoso','El pana','El foodie'];
+
+function renderPersonas() {
+  const list = document.getElementById('personasList');
+  list.innerHTML = '';
+  S.personas.forEach(p => list.appendChild(buildCard(p)));
+  recalc();
+}
+
+function buildCard(p) {
+  const card = el('div', 'persona-card');
+
+  // header
+  if (!p.emoji) p.emoji = randomAnimal();
+  const ph = nickPhs[(p.id - 1) % nickPhs.length];
+  const hdr = el('div', 'persona-header');
+  hdr.innerHTML = `
+    <button class="btn-persona-emoji" onclick="changePersonaEmoji(${p.id})" title="Cambiar carita">${p.emoji}</button>
+    <input type="text" placeholder="${ph}" value="${esc(p.name)}"
+      oninput="updatePersonaName(${p.id},this.value)" />
+    <button class="btn-remove-persona" onclick="removePersona(${p.id})" title="Sacar">✕</button>
+  `;
+  card.appendChild(hdr);
+
+  // items
+  const wrap = el('div', 'items-list');
+  if (p.items.length > 0) {
+    const h = el('div', 'items-header cols4');
+    h.innerHTML = `<span>¿Qué pidió?</span><span>Precio</span><span></span><span></span>`;
+    wrap.appendChild(h);
+  }
+  p.items.forEach(item => {
+    const row = el('div', 'item-row cols4');
+    row.innerHTML = `
+      <input type="text"   placeholder="lo que pidió" value="${esc(item.name)}"
+        oninput="updateItem(${p.id},${item.id},'name',this.value)" />
+      <input type="number" class="price" placeholder="Precio" value="${item.price}"
+        min="0" step="0.01" oninput="updateItem(${p.id},${item.id},'price',this.value)" />
+      <button class="btn-dup-item"    onclick="dupItem(${p.id},${item.id})"    title="Duplicar">⧉</button>
+      <button class="btn-remove-item" onclick="removeItem(${p.id},${item.id})" title="Quitar">✕</button>
+    `;
+    wrap.appendChild(row);
+  });
+  card.appendChild(wrap);
+
+  // porción de compartidos (si existen)
+  const n = S.personas.length;
+  const sharedConValor = S.shared.filter(i => parseFloat(i.price) > 0);
+  if (sharedConValor.length > 0 && n > 0) {
+    const gPct = parseFloat(S.pct) || 0;
+    const sp = el('div', 'shared-portion');
+    sharedConValor.forEach(item => {
+      const pr    = parseFloat(item.price) || 0;
+      const total = (pr + pr * gPct / 100) / n;
+      const row   = el('div', 'shared-portion-row');
+      const label = item.name ? `🍻 ${item.name}` : '🍻 Compartido';
+      row.innerHTML = `<span class="shared-portion-name">${esc(label)} (÷${n})</span><span class="shared-portion-amt">${fmt(total)}</span>`;
+      sp.appendChild(row);
+    });
+    card.appendChild(sp);
+  }
+
+  // footer
+  const foot = el('div', 'persona-footer');
+  foot.innerHTML = `
+    <button class="btn-add-item" onclick="addItem(${p.id})">+ Otro pedido</button>
+    <div class="persona-total" id="pt-${p.id}">$0</div>
+  `;
+  card.appendChild(foot);
+  return card;
+}
+
+function renderAll() { renderShared(); renderPersonas(); }
+
+// ─────────────────────────────────────────────────────
+//  CÁLCULO
+// ─────────────────────────────────────────────────────
+function sharedTotalConPct() {
+  const base = S.shared.reduce((s, i) => s + (parseFloat(i.price) || 0), 0);
+  const pct  = parseFloat(S.pct) || 0;
+  return base * (1 + pct / 100);
+}
+function personaConPct(p) {
+  const base = p.items.reduce((s, i) => s + (parseFloat(i.price) || 0), 0);
+  const pct  = parseFloat(S.pct) || 0;
+  return base * (1 + pct / 100);
+}
+function fmt(n) { return '$' + Math.round(n).toLocaleString('es-CL'); }
+
+// ─────────────────────────────────────────────────────
+//  BOLETA
+// ─────────────────────────────────────────────────────
+let receiptDataUrl = null;
+
+function showReceipt(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    receiptDataUrl = e.target.result;
+    const btn = document.querySelector('.btn-receipt');
+    btn.textContent = '👁️ Ver boleta';
+    btn.classList.add('loaded');
+    btn.onclick = verBoleta;
+  };
+  reader.readAsDataURL(file);
+}
+
+function verBoleta() {
+  if (!receiptDataUrl) return;
+  const w = window.open('', '_blank');
+  w.document.write(`<!DOCTYPE html><html><head><title>Boleta</title><style>body{margin:0;background:#111;display:flex;justify-content:center;align-items:flex-start;}img{max-width:100%;height:auto;}</style></head><body><img src="${receiptDataUrl}" /></body></html>`);
+  w.document.close();
+}
+
+function closeReceipt() {
+  document.getElementById('receiptPanel').style.display = 'none';
+  document.getElementById('receiptImg').src = '';
+  document.getElementById('receiptInput').value = '';
+}
+
+// ─────────────────────────────────────────────────────
+//  LOCK
+// ─────────────────────────────────────────────────────
+let manualUnlocked = false;
+
+function applyLock(ok) {
+  const card   = document.querySelector('.main-card');
+  const banner = document.getElementById('lockBanner');
+  if (ok && !manualUnlocked) {
+    card.classList.add('locked');
+    banner.style.display = 'flex';
+  } else {
+    card.classList.remove('locked');
+    banner.style.display = 'none';
+  }
+}
+
+function unlock() {
+  manualUnlocked = true;
+  applyLock(false);
+}
+
+function recalc() {
+  const total      = parseFloat(document.getElementById('totalBill').value) || 0;
+  const n          = S.personas.length;
+  const sharedAmt  = sharedTotalConPct();
+  const sharedPP   = n > 0 ? sharedAmt / n : 0;
+
+  // badge compartidos
+  document.getElementById('sharedBadge').textContent =
+    n > 0 && sharedAmt > 0
+      ? `${fmt(sharedAmt)} ÷ ${n} = ${fmt(sharedPP)} c/u`
+      : fmt(sharedAmt) + ' ÷ todos';
+
+  // resultados por persona
+  const results = computeResults(total, sharedPP);
+
+  // actualizar totales en cards
+  S.personas.forEach(p => {
+    const el = document.getElementById('pt-' + p.id);
+    if (el) {
+      const r = results.find(r => r.id === p.id);
+      el.textContent = r ? fmt(r.amount) : '$0';
+    }
+  });
+
+  const ok = total > 0 && Math.abs(results.reduce((s,r)=>s+r.amount,0) - total) < 1;
+  if (!ok) manualUnlocked = false; // si deja de cuadrar, resetear unlock manual
+  applyLock(ok);
+
+  renderSummary(results, total, sharedPP, sharedAmt);
+}
+
+function computeResults(total, sharedPP) {
+  if (S.personas.length === 0) return [];
+  // cada uno paga lo suyo + su % + su parte de lo compartido
+  return S.personas.map((p,i) => ({
+    id: p.id, name: p.name||apodos[i%apodos.length],
+    amount: personaConPct(p) + sharedPP
+  }));
+}
+
+function renderSummary(results, total, sharedPP, sharedAmt) {
+  const c = document.getElementById('summaryRows');
+  c.innerHTML = '';
+
+  if (results.length === 0) {
+    c.innerHTML = '<p style="color:#a0aec0;font-size:.8rem;text-align:center;padding:8px 0;">Agrega a alguien al grupo 👆</p>';
+    return;
+  }
+
+  // línea compartido si aplica
+  if (sharedAmt > 0 && S.personas.length > 0) {
+    const row = el('div', 'summary-shared-row');
+    row.innerHTML = `<span>🍻 Compartido (${S.personas.length} personas)</span><span style="font-weight:700">${fmt(sharedPP)} c/u</span>`;
+    c.appendChild(row);
+  }
+
+  const sum      = results.reduce((s,r) => s + r.amount, 0);
+  const maxAmt   = Math.max(...results.map(r => r.amount));
+  const richIdx  = results.findIndex(r => r.amount === maxAmt);
+  const hayDif   = results.some(r => Math.abs(r.amount - maxAmt) > 1);
+
+  results.forEach((r, i) => {
+    const isRico = i === richIdx && hayDif && results.length > 1;
+    const row = el('div', 'summary-row' + (isRico ? ' summary-row-rico' : ''));
+    row.innerHTML = `
+      <span class="name">${esc(r.name)}${isRico ? ' 😂' : ''}</span>
+      <span class="amount">${fmt(r.amount)}</span>
+    `;
+    c.appendChild(row);
+  });
+
+  // ── Desglose propina ──
+  const gPct = parseFloat(S.pct) || 0;
+  if (gPct > 0) {
+    const baseSinPropina = results.reduce((s, r) => {
+      const p = S.personas.find(px => px.id === r.id);
+      const baseP = p ? p.items.reduce((a,i) => a + (parseFloat(i.price)||0), 0) : 0;
+      return s + baseP;
+    }, 0) + (S.shared.reduce((s,i) => s+(parseFloat(i.price)||0), 0) / (S.personas.length||1)) * S.personas.length;
+    const propinaMonto = sum - baseSinPropina;
+
+    const rb = el('div', 'summary-row');
+    rb.style.cssText = 'background:#f7fafc;font-size:.78rem;';
+    rb.innerHTML = `<span class="name" style="color:#718096">Subtotal sin propina</span><span class="amount" style="color:#718096">${fmt(baseSinPropina)}</span>`;
+    c.appendChild(rb);
+
+    const rp = el('div', 'summary-row');
+    rp.style.cssText = 'background:#fef9ec;font-size:.78rem;';
+    rp.innerHTML = `<span class="name" style="color:#92400e">Propina (${gPct}%)</span><span class="amount" style="color:#92400e">+${fmt(propinaMonto)}</span>`;
+    c.appendChild(rp);
+  }
+
+  const diff    = total > 0 ? Math.abs(sum - total) : null;
+  const ok      = diff !== null && diff < 1;
+  const noTotal = total === 0;
+  const cls     = noTotal ? 'warning' : (ok ? 'ok' : 'error');
+  const msg     = noTotal ? '⚠️ Pon el total arriba' : (ok ? '✅ Todo cuadra, listo!' : (sum > total ? '↑ Se pasaron' : '↓ Falta plata'));
+  const bCls    = noTotal ? 'badge-warn' : (ok ? 'badge-ok' : 'badge-error');
+
+  const tr = el('div', `summary-total-row ${cls}`);
+  tr.innerHTML = `<span>${gPct > 0 ? 'Total con propina' : 'Total'}: ${fmt(sum)}</span><span class="badge ${bCls}">${msg}</span>`;
+  c.appendChild(tr);
+
+  if (!noTotal && !ok) {
+    const dr = el('div');
+    dr.style.cssText = 'font-size:.75rem;color:#718096;text-align:right;padding:3px 9px 0;';
+    dr.textContent = sum > total
+      ? `Se excedió por ${fmt(sum - total)} 😬`
+      : `Faltan ${fmt(total - sum)} — ¿alguien no puso sus cosas?`;
+    c.appendChild(dr);
+  }
+}
+
+// ─────────────────────────────────────────────────────
+//  UTILIDADES
+// ─────────────────────────────────────────────────────
+function uid() { return Date.now() + Math.random(); }
+function el(tag, cls) { const e = document.createElement(tag); if (cls) e.className = cls; return e; }
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+
+// ─────────────────────────────────────────────────────
+//  INIT
+// ─────────────────────────────────────────────────────
+load();
+
+if (S.total) document.getElementById('totalBill').value = S.total;
+updateTipChips();
+
+if (S.personas.length === 0) {
+  addPersona();   // siempre arranca con al menos una persona
+} else {
+  renderAll();
+}
+</script>
+
+</body>
+</html>
