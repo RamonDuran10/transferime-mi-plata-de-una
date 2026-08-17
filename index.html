@@ -3,7 +3,31 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>¿Quién debe qué?</title>
+  <title>¿Quién debe qué? — Divide la cuenta entre amigos</title>
+  <meta name="description" content="Divide la cuenta entre amigos sin dramas: anota lo que pidió cada uno, la propina, y al toque sabes quién debe cuánto. Gratis, sin registro y sin apps que instalar.">
+  <meta name="keywords" content="dividir cuenta, split de cuenta, calculadora de propinas, quién debe cuánto, dividir gastos entre amigos, split bill, divisor de cuentas">
+  <meta name="author" content="¿Quién debe qué?">
+  <meta name="robots" content="index, follow">
+  <meta name="theme-color" content="#6C5CE7">
+  <link rel="canonical" href="https://transferime-mi-plata-de-una.vercel.app/">
+
+  <!-- Open Graph / Facebook, WhatsApp, etc. -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://transferime-mi-plata-de-una.vercel.app/">
+  <meta property="og:site_name" content="¿Quién debe qué?">
+  <meta property="og:locale" content="es_CL">
+  <meta property="og:title" content="¿Quién debe qué? — Divide la cuenta entre amigos">
+  <meta property="og:description" content="Anota lo que pidió cada uno, la propina, y al toque sabes quién debe cuánto. Gratis, sin registro.">
+  <meta property="og:image" content="https://transferime-mi-plata-de-una.vercel.app/icono.png">
+
+  <!-- Twitter/X Card -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="¿Quién debe qué? — Divide la cuenta entre amigos">
+  <meta name="twitter:description" content="Anota lo que pidió cada uno, la propina, y al toque sabes quién debe cuánto. Gratis, sin registro.">
+  <meta name="twitter:image" content="https://transferime-mi-plata-de-una.vercel.app/icono.png">
+
+  <link rel="icon" type="image/png" href="icono.png">
+  <link rel="apple-touch-icon" href="icono.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -34,11 +58,15 @@
       gap: 8px; margin: -4px 0 12px;
     }
     .usage-badge {
-      display: none;
+      /* visibility (no display:none) para reservar el espacio desde el
+         primer render — si aparece recién cuando responde el fetch del
+         contador, empuja .main-card hacia abajo y dispara un CLS enorme. */
+      display: inline-flex; align-items: center; visibility: hidden;
       font-family: 'Baloo 2', cursive; font-weight: 700; font-size: 0.78rem;
       background: #fff; border: 2px solid #1B1A2E; border-radius: 999px;
       padding: 4px 12px; box-shadow: 2px 2px 0 #1B1A2E; color: #1B1A2E;
     }
+    .usage-badge.show { visibility: visible; }
     .btn-share-friends {
       display: inline-flex; align-items: center; gap: 4px;
       font-family: 'Baloo 2', cursive; font-weight: 700; font-size: 0.78rem;
@@ -822,7 +850,7 @@ function showUsageCounter(n) {
   const box = document.getElementById('usageCounter');
   if (!box || typeof n !== 'number') return;
   box.textContent = `${T.usageCounter.emoji} ${T.usageCounter.suffix(n)}`;
-  box.style.display = 'inline-block';
+  box.classList.add('show');
 }
 
 function loadUsageCounter() {
@@ -1496,6 +1524,11 @@ function applyStrings() {
 
   const shareFriendsBtn = document.getElementById('shareFriendsBtn');
   if (shareFriendsBtn) { shareFriendsBtn.textContent = T.topbar.shareFriends; shareFriendsBtn.title = T.topbar.shareFriendsTitle; }
+
+  // Placeholder invisible con un largo parecido al real, para reservar el
+  // espacio del badge antes de que responda el fetch del contador (evita CLS).
+  const usageBox = document.getElementById('usageCounter');
+  if (usageBox) usageBox.textContent = `${T.usageCounter.emoji} ${T.usageCounter.suffix(0)}`;
 
   const lockSpan = document.querySelector('.lock-banner span');
   if (lockSpan) lockSpan.textContent = T.lock.banner;
