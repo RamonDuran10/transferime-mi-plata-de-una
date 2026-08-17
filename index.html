@@ -26,8 +26,17 @@
   <meta name="twitter:description" content="Anota lo que pidió cada uno, la propina, y al toque sabes quién debe cuánto. Gratis, sin registro.">
   <meta name="twitter:image" content="https://transferime-mi-plata-de-una.vercel.app/icono.png">
 
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
   <link rel="icon" type="image/png" href="icono.png">
-  <link rel="apple-touch-icon" href="icono.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon-180.png">
+
+  <!-- PWA: instalable como app desde el celular -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Paga tu wea">
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -448,6 +457,27 @@
     }
     .toast.show { opacity: 1; }
 
+    /* ── Banner de "agregar a inicio" (PWA) ── */
+    .install-banner {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 90;
+      background: #1B1A2E; color: #fff;
+      padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px));
+      display: flex; align-items: center; justify-content: center; flex-wrap: wrap;
+      gap: 8px 12px; font-size: 0.78rem; font-weight: 600; text-align: center;
+      border-top: 2px solid #FFB020;
+      transform: translateY(100%); transition: transform .3s ease;
+    }
+    .install-banner.show { transform: translateY(0); }
+    .install-banner span { flex: 1 1 220px; min-width: 0; }
+    .install-banner-actions { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
+    .btn-install-action {
+      background: #FFB020; color: #1B1A2E; border: none; border-radius: 999px;
+      padding: 6px 14px; font-family: 'Baloo 2', cursive; font-weight: 800; font-size: 0.78rem; cursor: pointer;
+    }
+    .btn-install-dismiss {
+      background: none; border: none; color: #C9C3E0; font-size: 1rem; cursor: pointer; padding: 4px;
+    }
+
     /* ── Selectores de moneda y propina ── */
     .currency-select, .tip-select {
       flex: 0 0 auto; font-family: 'Baloo 2', cursive; font-weight: 700; font-size: 0.85rem;
@@ -544,6 +574,15 @@
 
 </div>
 <div class="toast" id="toast"></div>
+
+<!-- Banner de "agregar a inicio" (PWA) -->
+<div class="install-banner" id="installBanner">
+  <span id="installBannerMsg"></span>
+  <div class="install-banner-actions">
+    <button class="btn-install-action" id="installBannerAction" onclick="installBannerAction()" style="display:none"></button>
+    <button class="btn-install-dismiss" onclick="dismissInstallBanner()" title="Cerrar">✕</button>
+  </div>
+</div>
 
 <!-- Modal compartir -->
 <div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
@@ -883,6 +922,67 @@ function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg; t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ─────────────────────────────────────────────────────
+//  PWA: service worker + banner de "agregar a inicio"
+// ─────────────────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
+}
+
+let deferredInstallPrompt = null;
+
+function isStandalone() {
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+
+function initInstallBanner() {
+  if (isStandalone() || localStorage.getItem('installBannerDismissed')) return;
+
+  const ua = navigator.userAgent.toLowerCase();
+  const isIOS = /iphone|ipad|ipod/.test(ua);
+  const isAndroid = /android/.test(ua);
+  if (!isIOS && !isAndroid) return; // solo tiene sentido en el celular
+
+  const banner = document.getElementById('installBanner');
+  const msgEl = document.getElementById('installBannerMsg');
+  const actionBtn = document.getElementById('installBannerAction');
+  if (!banner || !msgEl || !actionBtn) return;
+
+  if (isIOS) {
+    setTimeout(() => {
+      if (isStandalone() || localStorage.getItem('installBannerDismissed')) return;
+      msgEl.textContent = T.install.iosMessage;
+      actionBtn.style.display = 'none';
+      banner.classList.add('show');
+    }, 2000);
+  } else if (isAndroid) {
+    window.addEventListener('beforeinstallprompt', e => {
+      e.preventDefault();
+      deferredInstallPrompt = e;
+      if (localStorage.getItem('installBannerDismissed')) return;
+      msgEl.textContent = T.install.androidMessage;
+      actionBtn.textContent = T.install.androidButton;
+      actionBtn.style.display = 'inline-flex';
+      banner.classList.add('show');
+    });
+  }
+}
+
+function installBannerAction() {
+  if (!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  deferredInstallPrompt.userChoice.finally(() => {
+    deferredInstallPrompt = null;
+    dismissInstallBanner();
+  });
+}
+
+function dismissInstallBanner() {
+  const banner = document.getElementById('installBanner');
+  if (banner) banner.classList.remove('show');
+  localStorage.setItem('installBannerDismissed', '1');
 }
 
 function onTotalChange() { S.total = document.getElementById('totalBill').value; save(); recalc(); }
@@ -1598,6 +1698,8 @@ function applyStrings() {
   } else {
     renderAll();
   }
+
+  initInstallBanner();
 })();
 </script>
 

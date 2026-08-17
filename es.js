@@ -132,6 +132,12 @@ const T = {
     cancel: 'Mejor no'
   },
 
+  install: {
+    androidMessage: '📲 Instálala en tu celular pa\' tenerla siempre a mano',
+    androidButton: 'Instalar',
+    iosMessage: '📲 Agrégala a tu pantalla de inicio: toca compartir (⬆️) y luego "Agregar a inicio"'
+  },
+
   toast: {
     loaded: '📂 Cuenta cargada — ¡agrega lo tuyo y mándala de nuevo!',
     loadFailed: '⚠️ No se pudo leer el link — se restauró tu cuenta guardada',
