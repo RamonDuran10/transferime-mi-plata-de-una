@@ -29,15 +29,25 @@
     }
     h1 .emoji { display: inline-block; animation: wiggle 2.4s ease-in-out infinite; }
 
-    .usage-counter {
-      display: flex; justify-content: center;
-      margin: -4px 0 12px;
+    .usage-row {
+      display: flex; justify-content: center; align-items: center; flex-wrap: wrap;
+      gap: 8px; margin: -4px 0 12px;
     }
-    .usage-counter span {
+    .usage-badge {
+      display: none;
       font-family: 'Baloo 2', cursive; font-weight: 700; font-size: 0.78rem;
       background: #fff; border: 2px solid #1B1A2E; border-radius: 999px;
       padding: 4px 12px; box-shadow: 2px 2px 0 #1B1A2E; color: #1B1A2E;
     }
+    .btn-share-friends {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-family: 'Baloo 2', cursive; font-weight: 700; font-size: 0.78rem;
+      background: #6C5CE7; color: #fff; border: 2px solid #1B1A2E; border-radius: 999px;
+      padding: 4px 12px; box-shadow: 2px 2px 0 #1B1A2E; text-decoration: none;
+      transition: all .1s;
+    }
+    .btn-share-friends:hover { background: #5A4BD6; }
+    .btn-share-friends:active { transform: translateY(2px); box-shadow: none; }
 
     .main-card {
       width: 80%;
@@ -324,13 +334,16 @@
 </head>
 <body>
 
-<h1><span class="emoji">🍕</span> ¿Quién debe qué?</h1>
-<div id="usageCounter" class="usage-counter" style="display:none"></div>
+<h1><span class="emoji"></span> <span id="headerTitleText"></span></h1>
+<div class="usage-row">
+  <span id="usageCounter" class="usage-badge"></span>
+  <a id="shareFriendsBtn" class="btn-share-friends" href="Share.html"></a>
+</div>
 
 <div class="main-card">
 
   <div class="top-bar">
-    <label for="totalBill">💰</label>
+    <label for="totalBill" id="totalLabel">💰</label>
     <input type="text" inputmode="decimal" id="totalBill" placeholder="Total de la cuenta" oninput="onTotalChange()" onblur="reformatAmountField(this); S.total=this.value; save();" />
     <select id="currencySelect" class="currency-select" onchange="setCurrency(this.value)" title="Moneda">
       <option value="CLP">🇨🇱 CLP</option>
@@ -359,7 +372,7 @@
   <div id="receiptPanel" style="display:none;margin-bottom:10px;border:1.5px solid #e2e8f0;border-radius:8px;overflow:hidden;">
     <div style="display:flex;align-items:center;justify-content:space-between;padding:5px 10px;background:#f7fafc;font-size:.78rem;font-weight:600;color:#4a5568;">
       <span>🧾 Boleta</span>
-      <button onclick="closeReceipt()" style="background:none;border:none;cursor:pointer;color:#a0aec0;font-size:.85rem;">✕</button>
+      <button class="receipt-close" onclick="closeReceipt()" style="background:none;border:none;cursor:pointer;color:#a0aec0;font-size:.85rem;">✕</button>
     </div>
     <div style="max-height:420px;overflow-y:auto;text-align:center;background:#000;">
       <img id="receiptImg" style="max-width:100%;max-height:420px;object-fit:contain;" />
@@ -403,6 +416,7 @@
   </div>
 </div>
 
+<script src="es.js"></script>
 <script>
 // ─────────────────────────────────────────────────────
 //  ESTADO
@@ -429,7 +443,7 @@ function load() {
   // 1. Estado inyectado en archivo exportado
   if (window.__estadoInicial) {
     S = window.__estadoInicial;
-    showToast('📂 Cuenta cargada — agrega lo tuyo y vuelve a compartir!');
+    showToast(T.toast.loaded);
     return;
   }
   // 2. localStorage
@@ -453,66 +467,66 @@ function exportarArchivo() {
 
   const gPct = parseFloat(S.pct) || 0;
 
-  let txt = '🍕 *Detalle de la cuenta*\n';
+  let txt = T.export.header + '\n';
   txt += '─────────────────────\n';
 
   if (total > 0) {
     if (gPct > 0) {
       const baseTotal = total / (1 + gPct / 100);
       const propinaMonto = total - baseTotal;
-      txt += `💰 Subtotal: ${fmt(baseTotal)}\n`;
-      txt += `📊 Propina (${gPct}%): +${fmt(propinaMonto)}\n`;
-      txt += `💵 Total: ${fmt(total)}\n`;
+      txt += T.export.subtotal(fmt(baseTotal)) + '\n';
+      txt += T.export.tip(gPct, fmt(propinaMonto)) + '\n';
+      txt += T.export.total(fmt(total)) + '\n';
     } else {
-      txt += `💰 Total: ${fmt(total)}\n`;
+      txt += T.export.totalNoTip(fmt(total)) + '\n';
     }
   }
 
   // Compartidos
   const sharedConValor = S.shared.filter(i => parseAmount(i.price) > 0);
   if (sharedConValor.length > 0 && n > 0) {
-    txt += '\n🍻 *Para todos* (' + n + ' personas):\n';
+    txt += '\n' + T.export.sharedHeader(n) + '\n';
     sharedConValor.forEach(i => {
       const pr  = parseAmount(i.price) || 0;
       const tot = pr * (1 + gPct / 100);
-      const label = i.name || 'Compartido';
-      txt += `  • ${label}: ${fmt(tot)} total → ${fmt(tot/n)} c/u\n`;
+      const label = i.name || T.export.sharedItemDefault;
+      txt += T.export.sharedItemLine(label, fmt(tot), fmt(tot/n)) + '\n';
     });
   }
 
   // Por persona
-  txt += '\n👥 *Lo que le toca a cada uno:*\n';
+  txt += '\n' + T.export.perPersonHeader + '\n';
   results.forEach((r, idx) => {
     const p = S.personas[idx];
     const isRico = results.every((x,i) => i === idx || x.amount <= r.amount) && results.some(x => Math.abs(x.amount - r.amount) > 1);
-    txt += `\n👤 *${r.name}*${isRico ? ' 😂' : ''}: ${fmt(r.amount)}\n`;
+    txt += '\n' + T.export.personLine(r.name, isRico, fmt(r.amount)) + '\n';
     let basePersona = 0;
     if (p && p.items.length > 0) {
       p.items.forEach(item => {
         const pr = parseAmount(item.price) || 0;
         if (pr > 0) {
           basePersona += pr;
-          const label = item.name || 'ítem';
-          txt += `  • ${label}: ${fmt(pr)}\n`;
+          const label = item.name || T.export.itemDefault;
+          txt += T.export.itemLine(label, fmt(pr)) + '\n';
         }
       });
     }
     if (sharedPP > 0) {
       const baseSharedPP = sharedPP / (1 + gPct / 100);
       basePersona += baseSharedPP;
-      txt += `  • Compartido: ${fmt(baseSharedPP)}\n`;
+      txt += T.export.sharedPersonLine(fmt(baseSharedPP)) + '\n';
     }
     if (gPct > 0 && basePersona > 0) {
       const propinaPers = r.amount - basePersona;
-      txt += `  📊 Propina (${gPct}%): +${fmt(propinaPers)}\n`;
+      txt += T.export.tipPersonLine(gPct, fmt(propinaPers)) + '\n';
     }
   });
 
   txt += '\n─────────────────────\n';
-  txt += ok ? '✅ Cuadra perfecto 🎉' : `Suma: ${fmt(sum)}`;
+  txt += ok ? T.export.matches : T.export.sum(fmt(sum));
 
   document.getElementById('modalText').value = txt;
-  document.getElementById('btnCopy').textContent = '📋 Copiar';
+  document.getElementById('btnCopy').textContent = T.modal.copy;
   document.getElementById('btnCopy').classList.remove('copied');
   document.getElementById('modalOverlay').classList.add('show');
 }
@@ -525,9 +539,9 @@ function copiarDetalle() {
   const txt = document.getElementById('modalText').value;
   navigator.clipboard.writeText(txt).then(() => {
     const btn = document.getElementById('btnCopy');
-    btn.textContent = '✓ Copiado!';
+    btn.textContent = T.modal.copied;
     btn.classList.add('copied');
-    setTimeout(() => { btn.textContent = '📋 Copiar'; btn.classList.remove('copied'); }, 2000);
+    setTimeout(() => { btn.textContent = T.modal.copy; btn.classList.remove('copied'); }, 2000);
   });
   bumpUsageCounter();
 }
@@ -541,8 +555,8 @@ const COUNTER_KEY = 'cuentas-compartidas';
 function showUsageCounter(n) {
   const box = document.getElementById('usageCounter');
   if (!box || typeof n !== 'number') return;
-  box.innerHTML = `<span>🥊 ${n.toLocaleString('es-CL')} peleas evitadas por plata</span>`;
-  box.style.display = 'flex';
+  box.textContent = `${T.usageCounter.emoji} ${T.usageCounter.suffix(n)}`;
+  box.style.display = 'inline-block';
 }
 
 function loadUsageCounter() {
@@ -560,7 +574,7 @@ function bumpUsageCounter() {
 }
 
 function resetAll() {
-  if (!confirm('¿Empezar de cero? Se borra todo 🗑️')) return;
+  if (!confirm(T.topbar.confirmReset)) return;
   const keepCurrency = S.currency;
   S = { total: '', pct: '', currency: keepCurrency, personaCount: 0, shared: [], personas: [] };
   save();
@@ -622,19 +636,19 @@ function renderShared() {
 
   if (S.shared.length > 0) {
     const hdr = el('div', 'items-header cols4s');
-    hdr.innerHTML = `<span>¿Qué pidieron todos?</span><span>Precio</span><span></span><span></span>`;
+    hdr.innerHTML = `<span>${T.shared.columnWhat}</span><span>${T.shared.columnPrice}</span><span></span><span></span>`;
     c.appendChild(hdr);
   }
 
   S.shared.forEach(item => {
     const row = el('div', 'item-row cols4s');
     row.innerHTML = `
-      <input type="text"   placeholder="para todos"  value="${esc(item.name)}"
+      <input type="text"   placeholder="${T.shared.namePlaceholder}"  value="${esc(item.name)}"
         oninput="updateShared(${item.id},'name',this.value)" />
-      <input type="text" inputmode="decimal" class="price" placeholder="Precio" value="${esc(formatAmountInput(item.price))}"
+      <input type="text" inputmode="decimal" class="price" placeholder="${T.shared.columnPrice}" value="${esc(formatAmountInput(item.price))}"
         oninput="updateShared(${item.id},'price',this.value)" onblur="reformatAmountField(this); updateShared(${item.id},'price',this.value);" />
-      <button class="btn-dup-item"    onclick="dupSharedItem(${item.id})"    title="Duplicar">⧉</button>
-      <button class="btn-remove-item" onclick="removeSharedItem(${item.id})" title="Quitar">✕</button>
+      <button class="btn-dup-item"    onclick="dupSharedItem(${item.id})"    title="${T.shared.dupTitle}">⧉</button>
+      <button class="btn-remove-item" onclick="removeSharedItem(${item.id})" title="${T.shared.removeTitle}">✕</button>
     `;
     c.appendChild(row);
   });
@@ -643,10 +657,9 @@ function renderShared() {
 // ─────────────────────────────────────────────────────
 //  PERSONAS
 // ─────────────────────────────────────────────────────
-const ANIMAL_EMOJIS = ['🐵','🦊','🐼','🐸','🦁','🐮','🐧','🦄','🐝','🦋','🐨','🐢','🐙','🐰','🐯','🐷'];
-
 function randomAnimal() {
-  return ANIMAL_EMOJIS[Math.floor(Math.random() * ANIMAL_EMOJIS.length)];
+  const emojis = T.persona.animalEmojis;
+  return emojis[Math.floor(Math.random() * emojis.length)];
 }
 
 function addPersona() {
@@ -704,9 +717,6 @@ function updateItem(pid, iid, field, val) {
 // ─────────────────────────────────────────────────────
 //  RENDER PERSONAS
 // ─────────────────────────────────────────────────────
-const nickPhs  = ['¿cómo le decimos?','Apodo del pana','¿quién es?','El de la derecha','El hambriento 😅'];
-const apodos   = ['El de la mesa','El tranquilo','El famoso','El pana','El foodie'];
-
 function renderPersonas() {
   const list = document.getElementById('personasList');
   list.innerHTML = '';
@@ -719,13 +729,14 @@ function buildCard(p) {
 
   // header
   if (!p.emoji) p.emoji = randomAnimal();
+  const nickPhs = T.persona.nicknamePlaceholders;
   const ph = nickPhs[(p.id - 1) % nickPhs.length];
   const hdr = el('div', 'persona-header');
   hdr.innerHTML = `
-    <button class="btn-persona-emoji" onclick="changePersonaEmoji(${p.id})" title="Cambiar carita">${p.emoji}</button>
+    <button class="btn-persona-emoji" onclick="changePersonaEmoji(${p.id})" title="${T.persona.emojiTitle}">${p.emoji}</button>
     <input type="text" placeholder="${ph}" value="${esc(p.name)}"
       oninput="updatePersonaName(${p.id},this.value)" />
-    <button class="btn-remove-persona" onclick="removePersona(${p.id})" title="Sacar">✕</button>
+    <button class="btn-remove-persona" onclick="removePersona(${p.id})" title="${T.persona.removeTitle}">✕</button>
   `;
   card.appendChild(hdr);
 
@@ -733,18 +744,18 @@ function buildCard(p) {
   const wrap = el('div', 'items-list');
   if (p.items.length > 0) {
     const h = el('div', 'items-header cols4');
-    h.innerHTML = `<span>¿Qué pidió?</span><span>Precio</span><span></span><span></span>`;
+    h.innerHTML = `<span>${T.persona.columnWhat}</span><span>${T.persona.columnPrice}</span><span></span><span></span>`;
     wrap.appendChild(h);
   }
   p.items.forEach(item => {
     const row = el('div', 'item-row cols4');
     row.innerHTML = `
-      <input type="text"   placeholder="lo que pidió" value="${esc(item.name)}"
+      <input type="text"   placeholder="${T.persona.itemPlaceholder}" value="${esc(item.name)}"
         oninput="updateItem(${p.id},${item.id},'name',this.value)" />
-      <input type="text" inputmode="decimal" class="price" placeholder="Precio" value="${esc(formatAmountInput(item.price))}"
+      <input type="text" inputmode="decimal" class="price" placeholder="${T.persona.columnPrice}" value="${esc(formatAmountInput(item.price))}"
         oninput="updateItem(${p.id},${item.id},'price',this.value)" onblur="reformatAmountField(this); updateItem(${p.id},${item.id},'price',this.value);" />
-      <button class="btn-dup-item"    onclick="dupItem(${p.id},${item.id})"    title="Duplicar">⧉</button>
-      <button class="btn-remove-item" onclick="removeItem(${p.id},${item.id})" title="Quitar">✕</button>
+      <button class="btn-dup-item"    onclick="dupItem(${p.id},${item.id})"    title="${T.persona.dupTitle}">⧉</button>
+      <button class="btn-remove-item" onclick="removeItem(${p.id},${item.id})" title="${T.persona.removeItemTitle}">✕</button>
     `;
     wrap.appendChild(row);
   });
@@ -760,7 +771,7 @@ function buildCard(p) {
       const pr    = parseAmount(item.price) || 0;
       const total = (pr + pr * gPct / 100) / n;
       const row   = el('div', 'shared-portion-row');
-      const label = item.name ? `🍻 ${item.name}` : '🍻 Compartido';
+      const label = T.persona.sharedPortion(item.name);
       row.innerHTML = `<span class="shared-portion-name">${esc(label)} (÷${n})</span><span class="shared-portion-amt">${fmt(total)}</span>`;
       sp.appendChild(row);
     });
@@ -770,8 +781,8 @@ function buildCard(p) {
   // footer
   const foot = el('div', 'persona-footer');
   foot.innerHTML = `
-    <button class="btn-add-item" onclick="addItem(${p.id})">+ Otro pedido</button>
-    <div class="persona-total" id="pt-${p.id}">$0</div>
+    <button class="btn-add-item" onclick="addItem(${p.id})" title="${T.persona.addItemTitle}">${T.persona.addItem}</button>
+    <div class="persona-total" id="pt-${p.id}">${fmt(0)}</div>
   `;
   card.appendChild(foot);
   return card;
@@ -890,7 +901,7 @@ function showReceipt(input) {
   reader.onload = function(e) {
     receiptDataUrl = e.target.result;
     const btn = document.querySelector('.btn-receipt');
-    btn.textContent = '👁️ Ver boleta';
+    btn.textContent = T.receipt.view;
     btn.classList.add('loaded');
     btn.onclick = verBoleta;
   };
@@ -941,8 +952,8 @@ function recalc() {
   // badge compartidos
   document.getElementById('sharedBadge').textContent =
     n > 0 && sharedAmt > 0
-      ? `${fmt(sharedAmt)} ÷ ${n} = ${fmt(sharedPP)} c/u`
-      : fmt(sharedAmt) + ' ÷ todos';
+      ? `${fmt(sharedAmt)} ÷ ${n} = ${fmt(sharedPP)} ${T.shared.perUnit}`
+      : fmt(sharedAmt) + ' ' + T.shared.badgeAll;
 
   // resultados por persona
   const results = computeResults(total, sharedPP);
@@ -952,7 +963,7 @@ function recalc() {
     const el = document.getElementById('pt-' + p.id);
     if (el) {
       const r = results.find(r => r.id === p.id);
-      el.textContent = r ? fmt(r.amount) : '$0';
+      el.textContent = r ? fmt(r.amount) : fmt(0);
     }
   });
 
@@ -967,7 +978,7 @@ function computeResults(total, sharedPP) {
   if (S.personas.length === 0) return [];
   // cada uno paga lo suyo + su % + su parte de lo compartido
   return S.personas.map((p,i) => ({
-    id: p.id, name: p.name||apodos[i%apodos.length],
+    id: p.id, name: p.name || T.persona.defaultNames[i % T.persona.defaultNames.length],
     amount: personaConPct(p) + sharedPP
   }));
 }
@@ -977,14 +988,14 @@ function renderSummary(results, total, sharedPP, sharedAmt) {
   c.innerHTML = '';
 
   if (results.length === 0) {
-    c.innerHTML = '<p style="color:#a0aec0;font-size:.8rem;text-align:center;padding:8px 0;">Agrega a alguien al grupo 👆</p>';
+    c.innerHTML = `<p style="color:#a0aec0;font-size:.8rem;text-align:center;padding:8px 0;">${T.summary.empty}</p>`;
     return;
   }
 
   // línea compartido si aplica
   if (sharedAmt > 0 && S.personas.length > 0) {
     const row = el('div', 'summary-shared-row');
-    row.innerHTML = `<span>🍻 Compartido (${S.personas.length} personas)</span><span style="font-weight:700">${fmt(sharedPP)} c/u</span>`;
+    row.innerHTML = `<span>${T.summary.sharedLine(S.personas.length)}</span><span style="font-weight:700">${fmt(sharedPP)} ${T.summary.perUnit}</span>`;
     c.appendChild(row);
   }
 
@@ -1015,12 +1026,12 @@ function renderSummary(results, total, sharedPP, sharedAmt) {
 
     const rb = el('div', 'summary-row');
     rb.style.cssText = 'background:#f7fafc;font-size:.78rem;';
-    rb.innerHTML = `<span class="name" style="color:#718096">Subtotal sin propina</span><span class="amount" style="color:#718096">${fmt(baseSinPropina)}</span>`;
+    rb.innerHTML = `<span class="name" style="color:#718096">${T.summary.subtotalNoTip}</span><span class="amount" style="color:#718096">${fmt(baseSinPropina)}</span>`;
     c.appendChild(rb);
 
     const rp = el('div', 'summary-row');
     rp.style.cssText = 'background:#fef9ec;font-size:.78rem;';
-    rp.innerHTML = `<span class="name" style="color:#92400e">Propina (${gPct}%)</span><span class="amount" style="color:#92400e">+${fmt(propinaMonto)}</span>`;
+    rp.innerHTML = `<span class="name" style="color:#92400e">${T.summary.tipLine(gPct)}</span><span class="amount" style="color:#92400e">+${fmt(propinaMonto)}</span>`;
     c.appendChild(rp);
   }
 
@@ -1028,19 +1039,19 @@ function renderSummary(results, total, sharedPP, sharedAmt) {
   const ok      = diff !== null && diff < 1;
   const noTotal = total === 0;
   const cls     = noTotal ? 'warning' : (ok ? 'ok' : 'error');
-  const msg     = noTotal ? '⚠️ Pon el total arriba' : (ok ? '✅ Todo cuadra, listo!' : (sum > total ? '↑ Se pasaron' : '↓ Falta plata'));
+  const msg     = noTotal ? T.summary.noTotal : (ok ? T.summary.ok : (sum > total ? T.summary.over : T.summary.under));
   const bCls    = noTotal ? 'badge-warn' : (ok ? 'badge-ok' : 'badge-error');
 
   const tr = el('div', `summary-total-row ${cls}`);
-  tr.innerHTML = `<span>${gPct > 0 ? 'Total con propina' : 'Total'}: ${fmt(sum)}</span><span class="badge ${bCls}">${msg}</span>`;
+  tr.innerHTML = `<span>${gPct > 0 ? T.summary.totalWithTip : T.summary.totalNoTip}: ${fmt(sum)}</span><span class="badge ${bCls}">${msg}</span>`;
   c.appendChild(tr);
 
   if (!noTotal && !ok) {
     const dr = el('div');
     dr.style.cssText = 'font-size:.75rem;color:#718096;text-align:right;padding:3px 9px 0;';
     dr.textContent = sum > total
-      ? `Se excedió por ${fmt(sum - total)} 😬`
-      : `Faltan ${fmt(total - sum)} — ¿alguien no puso sus cosas?`;
+      ? T.summary.exceededBy(fmt(sum - total))
+      : T.summary.missingBy(fmt(total - sum));
     c.appendChild(dr);
   }
 }
@@ -1053,8 +1064,82 @@ function el(tag, cls) { const e = document.createElement(tag); if (cls) e.classN
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
 
 // ─────────────────────────────────────────────────────
+//  TEXTOS ESTÁTICOS (desde es.js) — única fuente de verdad
+// ─────────────────────────────────────────────────────
+function applyStrings() {
+  document.title = T.pageTitle;
+
+  const emojiEl = document.querySelector('h1 .emoji');
+  if (emojiEl) emojiEl.textContent = T.header.emoji;
+  const titleEl = document.getElementById('headerTitleText');
+  if (titleEl) titleEl.textContent = T.header.title;
+
+  const totalLabel = document.getElementById('totalLabel');
+  if (totalLabel) totalLabel.title = T.topbar.totalTitle;
+  const totalInput = document.getElementById('totalBill');
+  if (totalInput) { totalInput.placeholder = T.topbar.totalPlaceholder; totalInput.title = T.topbar.totalTitle; }
+
+  const curSel = document.getElementById('currencySelect');
+  if (curSel) {
+    curSel.title = T.topbar.currencyTitle;
+    curSel.innerHTML = Object.entries(T.topbar.currencyOptions)
+      .map(([code, label]) => `<option value="${code}">${esc(label)}</option>`)
+      .join('');
+  }
+
+  const pctLabel = document.querySelector('.pct-label');
+  if (pctLabel) pctLabel.textContent = T.topbar.tipLabel;
+
+  document.querySelectorAll('#tipChips button').forEach(btn => {
+    const pct = parseFloat(btn.dataset.val) || 0;
+    btn.title = T.topbar.tipOptionTitle(pct);
+  });
+  const tip0 = document.querySelector('#tipChips button[data-val="0"]');
+  if (tip0) tip0.textContent = T.topbar.tipNone;
+
+  const shareBtn = document.querySelector('.btn-share');
+  if (shareBtn) { shareBtn.textContent = T.topbar.share; shareBtn.title = T.topbar.shareTitle; }
+
+  const resetBtn = document.querySelector('.btn-reset');
+  if (resetBtn) resetBtn.title = T.topbar.resetTitle;
+
+  const shareFriendsBtn = document.getElementById('shareFriendsBtn');
+  if (shareFriendsBtn) { shareFriendsBtn.textContent = T.topbar.shareFriends; shareFriendsBtn.title = T.topbar.shareFriendsTitle; }
+
+  const lockSpan = document.querySelector('.lock-banner span');
+  if (lockSpan) lockSpan.textContent = T.lock.banner;
+  const unlockBtn = document.querySelector('.btn-unlock');
+  if (unlockBtn) { unlockBtn.textContent = T.lock.edit; unlockBtn.title = T.lock.editTitle; }
+
+  const receiptTitle = document.querySelector('#receiptPanel span');
+  if (receiptTitle) receiptTitle.textContent = T.receipt.title;
+  const receiptCloseBtn = document.querySelector('.receipt-close');
+  if (receiptCloseBtn) receiptCloseBtn.title = T.receipt.closeTitle;
+
+  const sharedTitle = document.querySelector('.shared-header .title');
+  if (sharedTitle) sharedTitle.textContent = T.shared.title;
+  const addSharedBtn = document.querySelector('.btn-add-shared');
+  if (addSharedBtn) { addSharedBtn.textContent = T.shared.add; addSharedBtn.title = T.shared.addTitle; }
+
+  const addPersonaBtn = document.querySelector('.btn-add-persona');
+  if (addPersonaBtn) { addPersonaBtn.textContent = T.persona.addPersona; addPersonaBtn.title = T.persona.addPersonaTitle; }
+
+  const summaryTitle = document.querySelector('.summary h2');
+  if (summaryTitle) summaryTitle.textContent = T.summary.title;
+
+  const modalTitle = document.querySelector('.modal-header h3');
+  if (modalTitle) modalTitle.textContent = T.modal.title;
+  const modalCloseBtn = document.querySelector('.modal-close');
+  if (modalCloseBtn) modalCloseBtn.title = T.modal.closeTitle;
+
+  const copyBtn = document.getElementById('btnCopy');
+  if (copyBtn) copyBtn.textContent = T.modal.copy;
+}
+
+// ─────────────────────────────────────────────────────
 //  INIT
 // ─────────────────────────────────────────────────────
+applyStrings();
 load();
 loadUsageCounter();
 
