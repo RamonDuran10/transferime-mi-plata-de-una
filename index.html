@@ -29,6 +29,16 @@
     }
     h1 .emoji { display: inline-block; animation: wiggle 2.4s ease-in-out infinite; }
 
+    .usage-counter {
+      display: flex; justify-content: center;
+      margin: -4px 0 12px;
+    }
+    .usage-counter span {
+      font-family: 'Baloo 2', cursive; font-weight: 700; font-size: 0.78rem;
+      background: #fff; border: 2px solid #1B1A2E; border-radius: 999px;
+      padding: 4px 12px; box-shadow: 2px 2px 0 #1B1A2E; color: #1B1A2E;
+    }
+
     .main-card {
       width: 80%;
       max-width: 1200px;
@@ -68,6 +78,7 @@
     .locked .btn-add-shared { display: none !important; }
     .locked #totalBill { pointer-events: none; background: #F3F0FF; }
     .locked .tip-chips button { pointer-events: none; opacity: .6; }
+    .locked .currency-select { pointer-events: none; opacity: .6; }
     .lock-banner {
       display: flex; align-items: center; justify-content: space-between;
       padding: 7px 10px; background: #B2F2BB; border: 2px solid #1B1A2E;
@@ -283,6 +294,12 @@
 
     /* ── Chips de propina ── */
     .top-bar .pct-label { font-size: 0.78rem; color: #6B6684; font-weight: 600; white-space: nowrap; }
+    .currency-select {
+      flex: 0 0 auto; font-family: 'Baloo 2', cursive; font-weight: 700; font-size: 0.78rem;
+      padding: 7px 8px; border: 2px solid #1B1A2E; border-radius: 9px;
+      background: #fff; color: #1B1A2E; cursor: pointer; outline: none;
+    }
+    .currency-select:focus { box-shadow: 0 0 0 3px #FFD9A0; }
     .tip-chips { display: flex; gap: 4px; }
     .tip-chips button {
       font-family: 'Baloo 2', cursive; font-weight: 700; font-size: 0.78rem;
@@ -308,12 +325,19 @@
 <body>
 
 <h1><span class="emoji">🍕</span> ¿Quién debe qué?</h1>
+<div id="usageCounter" class="usage-counter" style="display:none"></div>
 
 <div class="main-card">
 
   <div class="top-bar">
     <label for="totalBill">💰</label>
-    <input type="number" id="totalBill" placeholder="Total de la cuenta" min="0" step="0.01" oninput="onTotalChange()" />
+    <input type="text" inputmode="decimal" id="totalBill" placeholder="Total de la cuenta" oninput="onTotalChange()" onblur="reformatAmountField(this); S.total=this.value; save();" />
+    <select id="currencySelect" class="currency-select" onchange="setCurrency(this.value)" title="Moneda">
+      <option value="CLP">🇨🇱 CLP</option>
+      <option value="USD">🇺🇸 USD</option>
+      <option value="ARS">🇦🇷 ARS</option>
+      <option value="EUR">🇪🇺 EUR</option>
+    </select>
     <span class="pct-label">Propina</span>
     <div class="tip-chips" id="tipChips">
       <button data-val="0" onclick="setPct(0)">sin</button>
@@ -388,6 +412,7 @@ const LS_KEY = 'dcv4'; // versión 4 — % por persona, no por ítem
 let S = {
   total:          '',
   pct:            '',   // propina global (%) para todos los ítems
+  currency:       '',   // CLP, USD, ARS, EUR — se autodetecta si viene vacío
   personaCount:   0,
   shared:         [],   // [{id, name, price}]
   personas:       []    // [{id, name, items:[{id, name, price}]}]
@@ -418,7 +443,7 @@ function load() {
 }
 
 function exportarArchivo() {
-  const total    = parseFloat(document.getElementById('totalBill').value) || 0;
+  const total    = parseAmount(document.getElementById('totalBill').value) || 0;
   const n        = S.personas.length;
   const sharedAmt = sharedTotalConPct();
   const sharedPP  = n > 0 ? sharedAmt / n : 0;
@@ -444,11 +469,11 @@ function exportarArchivo() {
   }
 
   // Compartidos
-  const sharedConValor = S.shared.filter(i => parseFloat(i.price) > 0);
+  const sharedConValor = S.shared.filter(i => parseAmount(i.price) > 0);
   if (sharedConValor.length > 0 && n > 0) {
     txt += '\n🍻 *Para todos* (' + n + ' personas):\n';
     sharedConValor.forEach(i => {
-      const pr  = parseFloat(i.price) || 0;
+      const pr  = parseAmount(i.price) || 0;
       const tot = pr * (1 + gPct / 100);
       const label = i.name || 'Compartido';
       txt += `  • ${label}: ${fmt(tot)} total → ${fmt(tot/n)} c/u\n`;
@@ -464,7 +489,7 @@ function exportarArchivo() {
     let basePersona = 0;
     if (p && p.items.length > 0) {
       p.items.forEach(item => {
-        const pr = parseFloat(item.price) || 0;
+        const pr = parseAmount(item.price) || 0;
         if (pr > 0) {
           basePersona += pr;
           const label = item.name || 'ítem';
@@ -504,14 +529,44 @@ function copiarDetalle() {
     btn.classList.add('copied');
     setTimeout(() => { btn.textContent = '📋 Copiar'; btn.classList.remove('copied'); }, 2000);
   });
+  bumpUsageCounter();
+}
+
+// ─────────────────────────────────────────────────────
+//  CONTADOR DE USO (público, visible para todos)
+// ─────────────────────────────────────────────────────
+const COUNTER_NS  = 'transferime-mi-plata-de-una';
+const COUNTER_KEY = 'cuentas-compartidas';
+
+function showUsageCounter(n) {
+  const box = document.getElementById('usageCounter');
+  if (!box || typeof n !== 'number') return;
+  box.innerHTML = `<span>🥊 ${n.toLocaleString('es-CL')} peleas evitadas por plata</span>`;
+  box.style.display = 'flex';
+}
+
+function loadUsageCounter() {
+  fetch(`https://abacus.jasoncameron.dev/get/${COUNTER_NS}/${COUNTER_KEY}`)
+    .then(r => r.json())
+    .then(d => showUsageCounter(d.value))
+    .catch(() => {}); // si el servicio falla, simplemente no se muestra el contador
+}
+
+function bumpUsageCounter() {
+  fetch(`https://abacus.jasoncameron.dev/hit/${COUNTER_NS}/${COUNTER_KEY}`)
+    .then(r => r.json())
+    .then(d => showUsageCounter(d.value))
+    .catch(() => {});
 }
 
 function resetAll() {
   if (!confirm('¿Empezar de cero? Se borra todo 🗑️')) return;
-  S = { total: '', pct: '', personaCount: 0, shared: [], personas: [] };
+  const keepCurrency = S.currency;
+  S = { total: '', pct: '', currency: keepCurrency, personaCount: 0, shared: [], personas: [] };
   save();
   document.getElementById('totalBill').value = '';
   updateTipChips();
+  updateCurrencySelect();
   renderAll();
 }
 
@@ -576,8 +631,8 @@ function renderShared() {
     row.innerHTML = `
       <input type="text"   placeholder="para todos"  value="${esc(item.name)}"
         oninput="updateShared(${item.id},'name',this.value)" />
-      <input type="number" class="price" placeholder="Precio" value="${item.price}"
-        min="0" step="0.01" oninput="updateShared(${item.id},'price',this.value)" />
+      <input type="text" inputmode="decimal" class="price" placeholder="Precio" value="${esc(formatAmountInput(item.price))}"
+        oninput="updateShared(${item.id},'price',this.value)" onblur="reformatAmountField(this); updateShared(${item.id},'price',this.value);" />
       <button class="btn-dup-item"    onclick="dupSharedItem(${item.id})"    title="Duplicar">⧉</button>
       <button class="btn-remove-item" onclick="removeSharedItem(${item.id})" title="Quitar">✕</button>
     `;
@@ -686,8 +741,8 @@ function buildCard(p) {
     row.innerHTML = `
       <input type="text"   placeholder="lo que pidió" value="${esc(item.name)}"
         oninput="updateItem(${p.id},${item.id},'name',this.value)" />
-      <input type="number" class="price" placeholder="Precio" value="${item.price}"
-        min="0" step="0.01" oninput="updateItem(${p.id},${item.id},'price',this.value)" />
+      <input type="text" inputmode="decimal" class="price" placeholder="Precio" value="${esc(formatAmountInput(item.price))}"
+        oninput="updateItem(${p.id},${item.id},'price',this.value)" onblur="reformatAmountField(this); updateItem(${p.id},${item.id},'price',this.value);" />
       <button class="btn-dup-item"    onclick="dupItem(${p.id},${item.id})"    title="Duplicar">⧉</button>
       <button class="btn-remove-item" onclick="removeItem(${p.id},${item.id})" title="Quitar">✕</button>
     `;
@@ -697,12 +752,12 @@ function buildCard(p) {
 
   // porción de compartidos (si existen)
   const n = S.personas.length;
-  const sharedConValor = S.shared.filter(i => parseFloat(i.price) > 0);
+  const sharedConValor = S.shared.filter(i => parseAmount(i.price) > 0);
   if (sharedConValor.length > 0 && n > 0) {
     const gPct = parseFloat(S.pct) || 0;
     const sp = el('div', 'shared-portion');
     sharedConValor.forEach(item => {
-      const pr    = parseFloat(item.price) || 0;
+      const pr    = parseAmount(item.price) || 0;
       const total = (pr + pr * gPct / 100) / n;
       const row   = el('div', 'shared-portion-row');
       const label = item.name ? `🍻 ${item.name}` : '🍻 Compartido';
@@ -728,16 +783,100 @@ function renderAll() { renderShared(); renderPersonas(); }
 //  CÁLCULO
 // ─────────────────────────────────────────────────────
 function sharedTotalConPct() {
-  const base = S.shared.reduce((s, i) => s + (parseFloat(i.price) || 0), 0);
+  const base = S.shared.reduce((s, i) => s + (parseAmount(i.price) || 0), 0);
   const pct  = parseFloat(S.pct) || 0;
   return base * (1 + pct / 100);
 }
 function personaConPct(p) {
-  const base = p.items.reduce((s, i) => s + (parseFloat(i.price) || 0), 0);
+  const base = p.items.reduce((s, i) => s + (parseAmount(i.price) || 0), 0);
   const pct  = parseFloat(S.pct) || 0;
   return base * (1 + pct / 100);
 }
-function fmt(n) { return '$' + Math.round(n).toLocaleString('es-CL'); }
+// ─────────────────────────────────────────────────────
+//  MONEDA
+// ─────────────────────────────────────────────────────
+const CURRENCIES = {
+  CLP: { locale: 'es-CL', currency: 'CLP', decimals: 0 },
+  USD: { locale: 'en-US', currency: 'USD', decimals: 2 },
+  ARS: { locale: 'es-AR', currency: 'ARS', decimals: 0 },
+  EUR: { locale: 'de-DE', currency: 'EUR', decimals: 2 }
+};
+
+function detectCurrency() {
+  const lang = (navigator.language || 'es-CL').toLowerCase();
+  if (lang.startsWith('es-ar')) return 'ARS';
+  if (lang.startsWith('en'))    return 'USD';
+  if (lang.startsWith('de') || lang.startsWith('fr') || lang.startsWith('it')) return 'EUR';
+  return 'CLP';
+}
+
+function setCurrency(cur) {
+  if (!CURRENCIES[cur]) return;
+  S.currency = cur;
+  save();
+  updateCurrencySelect();
+  reformatAmountField(document.getElementById('totalBill'));
+  S.total = document.getElementById('totalBill').value;
+  save();
+  renderAll(); // reconstruye items y recalcula, reformateando cada input de monto
+}
+
+function updateCurrencySelect() {
+  const sel = document.getElementById('currencySelect');
+  if (sel) sel.value = S.currency || 'CLP';
+}
+
+function fmt(n) {
+  const cfg = CURRENCIES[S.currency] || CURRENCIES.CLP;
+  try {
+    return new Intl.NumberFormat(cfg.locale, {
+      style: 'currency', currency: cfg.currency,
+      minimumFractionDigits: cfg.decimals, maximumFractionDigits: cfg.decimals
+    }).format(n || 0);
+  } catch (e) {
+    return '$' + Math.round(n || 0).toLocaleString('es-CL');
+  }
+}
+
+// ── Inputs de montos formateados según la moneda ──
+function currencySeparators(locale) {
+  const parts = new Intl.NumberFormat(locale).formatToParts(1234.5);
+  return {
+    group:   (parts.find(p => p.type === 'group')   || {}).value || ',',
+    decimal: (parts.find(p => p.type === 'decimal') || {}).value || '.'
+  };
+}
+
+function parseAmount(str) {
+  if (str == null) return 0;
+  let s = String(str).trim();
+  if (!s) return 0;
+  const cfg = CURRENCIES[S.currency] || CURRENCIES.CLP;
+  const { group, decimal } = currencySeparators(cfg.locale);
+  s = s.split(group).join('');
+  if (decimal !== '.') s = s.split(decimal).join('.');
+  s = s.replace(/[^\d.\-]/g, '');
+  const n = parseFloat(s);
+  return isFinite(n) ? n : 0;
+}
+
+function formatAmountInput(n) {
+  const num = typeof n === 'number' ? n : parseAmount(n);
+  if (!num && num !== 0) return '';
+  const cfg = CURRENCIES[S.currency] || CURRENCIES.CLP;
+  try {
+    return new Intl.NumberFormat(cfg.locale, {
+      minimumFractionDigits: cfg.decimals, maximumFractionDigits: cfg.decimals
+    }).format(num);
+  } catch (e) {
+    return String(num);
+  }
+}
+
+function reformatAmountField(el) {
+  if (!el || !el.value.trim()) return;
+  el.value = formatAmountInput(parseAmount(el.value));
+}
 
 // ─────────────────────────────────────────────────────
 //  BOLETA
@@ -794,7 +933,7 @@ function unlock() {
 }
 
 function recalc() {
-  const total      = parseFloat(document.getElementById('totalBill').value) || 0;
+  const total      = parseAmount(document.getElementById('totalBill').value) || 0;
   const n          = S.personas.length;
   const sharedAmt  = sharedTotalConPct();
   const sharedPP   = n > 0 ? sharedAmt / n : 0;
@@ -869,9 +1008,9 @@ function renderSummary(results, total, sharedPP, sharedAmt) {
   if (gPct > 0) {
     const baseSinPropina = results.reduce((s, r) => {
       const p = S.personas.find(px => px.id === r.id);
-      const baseP = p ? p.items.reduce((a,i) => a + (parseFloat(i.price)||0), 0) : 0;
+      const baseP = p ? p.items.reduce((a,i) => a + (parseAmount(i.price)||0), 0) : 0;
       return s + baseP;
-    }, 0) + (S.shared.reduce((s,i) => s+(parseFloat(i.price)||0), 0) / (S.personas.length||1)) * S.personas.length;
+    }, 0) + (S.shared.reduce((s,i) => s+(parseAmount(i.price)||0), 0) / (S.personas.length||1)) * S.personas.length;
     const propinaMonto = sum - baseSinPropina;
 
     const rb = el('div', 'summary-row');
@@ -917,8 +1056,12 @@ function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot
 //  INIT
 // ─────────────────────────────────────────────────────
 load();
+loadUsageCounter();
 
-if (S.total) document.getElementById('totalBill').value = S.total;
+if (!S.currency) S.currency = detectCurrency();
+updateCurrencySelect();
+
+if (S.total) document.getElementById('totalBill').value = formatAmountInput(S.total);
 updateTipChips();
 
 if (S.personas.length === 0) {
