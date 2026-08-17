@@ -5,11 +5,11 @@
 //  <script src="es.js"> de index.html por el nuevo archivo.
 // ─────────────────────────────────────────────────────
 const T = {
-  pageTitle: '¿Quién le debe a quién?',
+  pageTitle: '¿Paga la wea?',
 
   header: {
     emoji: '🍻',
-    title: '¿Quién le debe a quién?'
+    title: '¿Paga la wea po´?'
   },
 
   usageCounter: {
@@ -97,11 +97,19 @@ const T = {
     title: '📋 Detalle para compartir',
     closeTitle: 'Cerrar',
     copy: '📋 Copiar',
-    copied: '✓ ¡Copiado!'
+    copied: '✓ ¡Copiado!',
+    relayLabel: '🔗 Link para que sigan agregando lo suyo',
+    relayLabelTitle: 'Cualquiera que abra este link va a ver la cuenta hasta ahora y podrá sumar lo suyo',
+    copyRelay: 'Copiar link',
+    copiedRelay: '✓ ¡Copiado!',
+    relayWarning: 'El link se está poniendo largo — igual funciona, pero conviene cerrar la cuenta pronto 😅',
+    relayDone: '✅ La cuenta ya cuadra — no hace falta invitar a nadie más'
   },
 
   toast: {
-    loaded: '📂 Cuenta cargada — ¡agrega lo tuyo y mándala de nuevo!'
+    loaded: '📂 Cuenta cargada — ¡agrega lo tuyo y mándala de nuevo!',
+    loadFailed: '⚠️ No se pudo leer el link — se restauró tu cuenta guardada',
+    confirmOverwrite: '¿Cargar la cuenta de ese link? Se reemplaza lo que tienes ahora'
   },
 
   export: {

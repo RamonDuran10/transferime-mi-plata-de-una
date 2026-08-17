@@ -293,6 +293,31 @@
     .btn-copy:active { transform: translateY(3px); box-shadow: none; }
     .btn-copy.copied { background: #12B886; }
 
+    .modal-relay-section { margin-top: 14px; padding-top: 14px; border-top: 2px dashed #E4E0F0; }
+    .modal-relay-section label {
+      display: block; font-size: 0.75rem; font-weight: 700; color: #6B6684; margin-bottom: 6px;
+    }
+    .modal-relay-row { display: flex; gap: 6px; }
+    .modal-relay-row input {
+      flex: 1; min-width: 0; padding: 8px 10px; border: 2px solid #1B1A2E; border-radius: 8px;
+      font-size: 0.72rem; color: #1B1A2E; background: #FAFAFE; outline: none;
+    }
+    .btn-copy-relay {
+      flex: 0 0 auto; padding: 8px 12px; background: #4DABF7; color: #fff;
+      border: 2px solid #1B1A2E; border-radius: 8px; font-family: 'Baloo 2', cursive;
+      font-weight: 700; font-size: 0.78rem; cursor: pointer; transition: background .15s;
+    }
+    .btn-copy-relay:hover { background: #2b96e8; }
+    .btn-copy-relay.copied { background: #12B886; }
+    .modal-relay-warning {
+      margin-top: 6px; font-size: 0.7rem; color: #92400e; background: #FFF3BF;
+      border-radius: 6px; padding: 4px 8px;
+    }
+    .modal-relay-done {
+      font-size: 0.75rem; color: #1B1A2E; background: #B2F2BB;
+      border-radius: 6px; padding: 6px 8px; font-weight: 600;
+    }
+
     /* toast */
     .toast {
       position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
@@ -413,6 +438,16 @@
     </div>
     <textarea id="modalText" readonly></textarea>
     <button class="btn-copy" id="btnCopy" onclick="copiarDetalle()">📋 Copiar</button>
+
+    <div class="modal-relay-section">
+      <label id="modalRelayLabel" for="modalRelayLink"></label>
+      <div class="modal-relay-row" id="modalRelayRow">
+        <input type="text" id="modalRelayLink" readonly />
+        <button class="btn-copy-relay" id="btnCopyRelay" onclick="copiarRelayLink()"></button>
+      </div>
+      <p class="modal-relay-warning" id="modalRelayWarning" style="display:none"></p>
+      <p class="modal-relay-done" id="modalRelayDone" style="display:none"></p>
+    </div>
   </div>
 </div>
 
@@ -439,24 +474,49 @@ function save() {
   try { localStorage.setItem(LS_KEY, JSON.stringify(S)); } catch(e) {}
 }
 
-function load() {
-  // 1. Estado inyectado en archivo exportado
-  if (window.__estadoInicial) {
-    S = window.__estadoInicial;
-    showToast(T.toast.loaded);
-    return;
-  }
-  // 2. localStorage
+function loadFromLocalStorage() {
   try {
     const raw = localStorage.getItem(LS_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed && Array.isArray(parsed.personas)) S = parsed;
     }
-  } catch(e) {}
+  } catch (e) {}
 }
 
-function exportarArchivo() {
+async function load() {
+  if (location.hash.startsWith('#s=')) {
+    // ¿ya hay algo cargado (en memoria o en localStorage) que se perdería?
+    let hasExisting = S.personas.length > 0;
+    if (!hasExisting) {
+      try {
+        const raw = localStorage.getItem(LS_KEY);
+        const parsed = raw && JSON.parse(raw);
+        hasExisting = !!(parsed && Array.isArray(parsed.personas) && parsed.personas.length > 0);
+      } catch (e) {}
+    }
+    try {
+      const decoded = await decodeStateFromHash(location.hash.slice(3));
+      if (hasExisting && !confirm(T.toast.confirmOverwrite)) {
+        history.replaceState(null, '', location.pathname + location.search);
+        loadFromLocalStorage();
+        return;
+      }
+      S = decoded;
+      save();
+      history.replaceState(null, '', location.pathname + location.search);
+      showToast(T.toast.loaded);
+      return;
+    } catch (e) {
+      history.replaceState(null, '', location.pathname + location.search);
+      showToast(T.toast.loadFailed);
+      // sigue al fallback de localStorage abajo
+    }
+  }
+  loadFromLocalStorage();
+}
+
+async function exportarArchivo() {
   const total    = parseAmount(document.getElementById('totalBill').value) || 0;
   const n        = S.personas.length;
   const sharedAmt = sharedTotalConPct();
@@ -529,6 +589,39 @@ function exportarArchivo() {
   document.getElementById('btnCopy').textContent = T.modal.copy;
   document.getElementById('btnCopy').classList.remove('copied');
   document.getElementById('modalOverlay').classList.add('show');
+
+  // Link "en posta" — solo tiene sentido mientras falte gente por agregar
+  // lo suyo. Si la cuenta ya cuadra, no hay nada más que invitar a sumar.
+  const relayLabel   = document.getElementById('modalRelayLabel');
+  const relayRow     = document.getElementById('modalRelayRow');
+  const warningEl    = document.getElementById('modalRelayWarning');
+  const doneEl       = document.getElementById('modalRelayDone');
+
+  if (ok) {
+    relayLabel.style.display = 'none';
+    relayRow.style.display = 'none';
+    warningEl.style.display = 'none';
+    doneEl.style.display = 'block';
+    document.getElementById('modalRelayLink').value = '';
+    return;
+  }
+
+  doneEl.style.display = 'none';
+  relayLabel.style.display = 'block';
+  relayRow.style.display = 'flex';
+
+  // Se calcula después de mostrar el modal para que el texto de WhatsApp
+  // aparezca al instante sin esperar la compresión.
+  const compact = toCompact(S);
+  const hashPayload = await encodeStateToHash(compact);
+  const url = location.origin + location.pathname + '#s=' + hashPayload;
+  document.getElementById('modalRelayLink').value = url;
+  if (url.length > 1500) {
+    warningEl.textContent = T.modal.relayWarning;
+    warningEl.style.display = 'block';
+  } else {
+    warningEl.style.display = 'none';
+  }
 }
 
 function closeModal() {
@@ -542,6 +635,18 @@ function copiarDetalle() {
     btn.textContent = T.modal.copied;
     btn.classList.add('copied');
     setTimeout(() => { btn.textContent = T.modal.copy; btn.classList.remove('copied'); }, 2000);
+  });
+  bumpUsageCounter();
+}
+
+function copiarRelayLink() {
+  const url = document.getElementById('modalRelayLink').value;
+  if (!url) return;
+  navigator.clipboard.writeText(url).then(() => {
+    const btn = document.getElementById('btnCopyRelay');
+    btn.textContent = T.modal.copiedRelay;
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = T.modal.copyRelay; btn.classList.remove('copied'); }, 2000);
   });
   bumpUsageCounter();
 }
@@ -1064,6 +1169,86 @@ function el(tag, cls) { const e = document.createElement(tag); if (cls) e.classN
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
 
 // ─────────────────────────────────────────────────────
+//  LINK "EN POSTA" (estado comprimido en el hash de la URL)
+// ─────────────────────────────────────────────────────
+
+// Esquema compacto: tuplas sin nombres de clave repetidos, e ids nunca
+// codificados (se regeneran al decodificar, igual que hace addPersona()).
+function toCompact(s) {
+  return [
+    s.total || '', s.pct || '', s.currency || '',
+    (s.shared || []).map(i => [i.name || '', i.price || '']),
+    (s.personas || []).map(p => [
+      p.name || '', p.emoji || '',
+      (p.items || []).map(i => [i.name || '', i.price || ''])
+    ])
+  ];
+}
+
+function fromCompact(c) {
+  const [total, pct, currency, sharedT, personasT] = c;
+  let n = 0;
+  return {
+    total: total || '', pct: pct || '', currency: currency || '',
+    personaCount: (personasT || []).length,
+    shared: (sharedT || []).map(([name, price]) => ({ id: uid(), name: name || '', price: price || '' })),
+    personas: (personasT || []).map(([name, emoji, itemsT]) => ({
+      id: ++n, name: name || '', emoji: emoji || '',
+      items: (itemsT || []).map(([nm, pr]) => ({ id: uid(), name: nm || '', price: pr || '' }))
+    }))
+  };
+}
+
+function toBase64Url(bytes) {
+  let bin = '';
+  bytes.forEach(b => bin += String.fromCharCode(b));
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function fromBase64Url(str) {
+  let b64 = str.replace(/-/g, '+').replace(/_/g, '/');
+  while (b64.length % 4) b64 += '=';
+  const bin = atob(b64);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+// 'd' = comprimido con deflate-raw (sin overhead de contenedor gzip),
+// 'r' = sin comprimir (fallback para navegadores muy viejos sin CompressionStream).
+async function encodeStateToHash(compact) {
+  const bytes = new TextEncoder().encode(JSON.stringify(compact));
+  if (typeof CompressionStream === 'function') {
+    try {
+      const cs = new CompressionStream('deflate-raw');
+      const writer = cs.writable.getWriter();
+      writer.write(bytes);
+      writer.close();
+      const buf = await new Response(cs.readable).arrayBuffer();
+      return 'd' + toBase64Url(new Uint8Array(buf));
+    } catch (e) { /* sigue al fallback sin comprimir */ }
+  }
+  return 'r' + toBase64Url(bytes);
+}
+
+async function decodeStateFromHash(payload) {
+  const marker = payload[0];
+  const bytes = fromBase64Url(payload.slice(1));
+  let jsonBytes = bytes;
+  if (marker === 'd') {
+    if (typeof DecompressionStream !== 'function') throw new Error('unsupported');
+    const ds = new DecompressionStream('deflate-raw');
+    const writer = ds.writable.getWriter();
+    writer.write(bytes);
+    writer.close();
+    jsonBytes = new Uint8Array(await new Response(ds.readable).arrayBuffer());
+  }
+  const compact = JSON.parse(new TextDecoder().decode(jsonBytes));
+  if (!Array.isArray(compact)) throw new Error('bad-shape');
+  return fromCompact(compact);
+}
+
+// ─────────────────────────────────────────────────────
 //  TEXTOS ESTÁTICOS (desde es.js) — única fuente de verdad
 // ─────────────────────────────────────────────────────
 function applyStrings() {
@@ -1134,26 +1319,35 @@ function applyStrings() {
 
   const copyBtn = document.getElementById('btnCopy');
   if (copyBtn) copyBtn.textContent = T.modal.copy;
+
+  const relayLabel = document.getElementById('modalRelayLabel');
+  if (relayLabel) { relayLabel.textContent = T.modal.relayLabel; relayLabel.title = T.modal.relayLabelTitle; }
+  const copyRelayBtn = document.getElementById('btnCopyRelay');
+  if (copyRelayBtn) copyRelayBtn.textContent = T.modal.copyRelay;
+  const relayDoneEl = document.getElementById('modalRelayDone');
+  if (relayDoneEl) relayDoneEl.textContent = T.modal.relayDone;
 }
 
 // ─────────────────────────────────────────────────────
 //  INIT
 // ─────────────────────────────────────────────────────
-applyStrings();
-load();
-loadUsageCounter();
+(async () => {
+  applyStrings();
+  await load();
+  loadUsageCounter();
 
-if (!S.currency) S.currency = detectCurrency();
-updateCurrencySelect();
+  if (!S.currency) S.currency = detectCurrency();
+  updateCurrencySelect();
 
-if (S.total) document.getElementById('totalBill').value = formatAmountInput(S.total);
-updateTipChips();
+  if (S.total) document.getElementById('totalBill').value = formatAmountInput(S.total);
+  updateTipChips();
 
-if (S.personas.length === 0) {
-  addPersona();   // siempre arranca con al menos una persona
-} else {
-  renderAll();
-}
+  if (S.personas.length === 0) {
+    addPersona();   // siempre arranca con al menos una persona
+  } else {
+    renderAll();
+  }
+})();
 </script>
 
 </body>
