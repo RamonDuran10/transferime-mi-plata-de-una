@@ -163,10 +163,6 @@ const T = {
     balancedNote: '🎉 ¡Ya cuadró! Cierra la sesión cuando quieran'
   },
 
-  toast: {
-    confirmOverwrite: '¿Cargar la cuenta de ese link? Se reemplaza lo que tienes ahora'
-  },
-
   export: {
     header: '🍕 *Detalle de la cuenta*',
     subtotal: amt => `💰 Subtotal: ${amt}`,

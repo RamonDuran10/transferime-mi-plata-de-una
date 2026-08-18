@@ -64,7 +64,9 @@
 
     /* ── Loader de página completa ── */
     .page-loader {
-      position: fixed; inset: 0; z-index: 1000;
+      /* por debajo de .modal-overlay (z-index:100) — si algún diálogo necesita
+         mostrarse mientras carga (ej. sesión expirada), no debe quedar tapado */
+      position: fixed; inset: 0; z-index: 50;
       display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
       background: #FFF3E0; background-image: radial-gradient(#FFD9A0 2px, transparent 2px);
       background-size: 20px 20px;
@@ -1999,15 +2001,14 @@ async function bootstrapGuestFromHash() {
   if (!location.hash.startsWith('#live=')) return false;
   const sessionId = location.hash.slice(6);
 
+  // Entrar por QR/link es una acción explícita — reemplaza cualquier cosa que
+  // hubiera localmente sin preguntar (evita además quedar esperando un diálogo
+  // de confirmación mientras el loader de la página sigue tapando la pantalla).
   const existing = loadSessionFromStorage();
   if (existing && existing.sessionId === sessionId) {
     liveSession = existing;
     MODE = existing.role;
   } else {
-    if (S.personas.length > 0 && !await customConfirm(T.toast.confirmOverwrite)) {
-      history.replaceState(null, '', location.pathname + location.search);
-      return false;
-    }
     liveSession = { sessionId, role: 'guest', myPersonaIds: [] };
   }
 
