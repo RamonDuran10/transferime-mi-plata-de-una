@@ -71,6 +71,7 @@ const T = {
     confirmRemove: name => `¿Sacar a ${name} del grupo? Se borran sus pedidos`,
     removeConfirmFallbackName: 'esta persona',
     needNameBeforeAdding: 'Ponle nombre.. ¿como le vas a cobrar despues? 🙏',
+    readonlyTitle: 'Solo lectura — cada quien controla lo suyo',
     markPaidTitle: '👑 Marcar como quien pagó la cuenta',
     unmarkPaidTitle: 'Quitar la corona',
     paidBadge: '👑 Pagó',

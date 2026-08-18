@@ -196,8 +196,32 @@
     .guest-mode .tip-select { pointer-events: none !important; opacity: .65; }
     /* host o invitado: "Nueva cuenta" queda oculto para no romper la sesión por accidente */
     .live-mode .btn-reset { display: none !important; }
+    /* en vivo: solo compartidos administrados por quien creó la cuenta */
+    .guest-mode .shared-card input,
+    .guest-mode .shared-card select { pointer-events: none !important; opacity: .7; }
+    .guest-mode .btn-add-shared,
+    .guest-mode .shared-card .btn-dup-item,
+    .guest-mode .shared-card .btn-remove-item { display: none !important; }
+    /* eliminar personas: privilegio exclusivo de quien creó la cuenta —
+       ningún invitado puede sacar a nadie, ni siquiera a sí mismo */
+    .guest-mode .btn-remove-persona { display: none !important; }
     .persona-card.pending { opacity: .55; }
     .persona-card.pending .persona-header { justify-content: center; padding: 14px 10px; }
+
+    /* tarjeta de otra persona en sesión en vivo: solo lectura, cada quien controla la suya */
+    .persona-card.readonly-card { background: #FAF9FC; }
+    .persona-card.readonly-card .persona-header input {
+      pointer-events: none !important; background: #F3F0FF !important; color: #6B6684;
+    }
+    .persona-card.readonly-card .item-row input {
+      pointer-events: none !important; background: #F3F0FF !important; color: #6B6684;
+    }
+    .persona-card.readonly-card .btn-persona-emoji,
+    .persona-card.readonly-card .btn-persona-paid,
+    .persona-card.readonly-card .btn-add-item,
+    .persona-card.readonly-card .btn-dup-item,
+    .persona-card.readonly-card .btn-remove-item { display: none !important; }
+    .readonly-badge { flex: 0 0 auto; font-size: 0.85rem; opacity: .6; }
 
     /* ── Cuenta todavía no creada: formulario deshabilitado ── */
     .not-created .top-bar input,
@@ -597,6 +621,10 @@
     @media (max-width: 700px) {
       .main-card { width: 100%; }
       .personas-list { grid-template-columns: 1fr; }
+      /* Safari en iOS hace zoom automático al enfocar un campo con letra
+         menor a 16px, y la página queda "agrandada" hasta que el usuario
+         la achica a mano — forzar 16px en todos los campos lo evita. */
+      input, select, textarea { font-size: 16px !important; }
     }
 
     @media (max-width: 480px) {
@@ -1232,10 +1260,28 @@ function changePersonaEmoji(id) {
 }
 
 async function removePersona(id) {
+  // eliminar personas es un privilegio exclusivo de quien creó la cuenta —
+  // ya se oculta el botón en modo invitado (CSS .guest-mode), esto es un
+  // segundo resguardo por si acaso.
+  if (MODE === 'guest') return;
+
   const p = S.personas.find(p => p.id === id);
   const label = (p && p.name) ? p.name : T.persona.removeConfirmFallbackName;
   if (!await customConfirm(T.persona.confirmRemove(label))) return;
   S.personas = S.personas.filter(p => p.id !== id);
+
+  if (liveSession) {
+    liveSession.myPersonaIds = liveSession.myPersonaIds.filter(pid => pid !== id);
+    saveSession();
+    // aviso explícito al servidor — el push normal solo empuja las personas
+    // "propias", y esta puede ser de otro dispositivo (ej. un invitado).
+    apiCall(liveSession.sessionId + '/persona/' + id, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ deleted: true })
+    }).catch(() => {});
+  }
+
   save(); renderPersonas(); recalc();
 }
 
@@ -1289,7 +1335,10 @@ function renderPersonas() {
 }
 
 function buildCard(p) {
-  const card = el('div', 'persona-card' + (p.paid ? ' is-payer' : ''));
+  // en sesión en vivo, cada dispositivo solo puede editar SU propia persona —
+  // las demás se muestran de solo lectura para que nadie se pise con nadie.
+  const isMine = MODE === 'solo' || (liveSession && liveSession.myPersonaIds.includes(p.id));
+  const card = el('div', 'persona-card' + (p.paid ? ' is-payer' : '') + (isMine ? '' : ' readonly-card'));
 
   // header
   if (!p.emoji) p.emoji = randomAnimal();
@@ -1297,9 +1346,10 @@ function buildCard(p) {
   const ph = nickPhs[(p.id - 1) % nickPhs.length];
   const hdr = el('div', 'persona-header');
   hdr.innerHTML = `
-    <button class="btn-persona-emoji" onclick="changePersonaEmoji(${p.id})" title="${T.persona.emojiTitle}">${p.emoji}</button>
+    <button class="btn-persona-emoji" onclick="changePersonaEmoji(${p.id})" title="${T.persona.emojiTitle}" ${isMine ? '' : 'disabled'}>${p.emoji}</button>
     <input type="text" id="pname-${p.id}" placeholder="${ph}" value="${esc(p.name)}"
-      oninput="updatePersonaName(${p.id},this.value)" />
+      oninput="updatePersonaName(${p.id},this.value)" ${isMine ? '' : 'readonly'} />
+    ${isMine ? '' : `<span class="readonly-badge" title="${T.persona.readonlyTitle}">🔒</span>`}
     <button class="btn-persona-paid${p.paid ? ' is-paid' : ''}" onclick="setPagador(${p.id})"
       title="${p.paid ? T.persona.unmarkPaidTitle : T.persona.markPaidTitle}">👑</button>
     <button class="btn-remove-persona" onclick="removePersona(${p.id})" title="${T.persona.removeTitle}">✕</button>
