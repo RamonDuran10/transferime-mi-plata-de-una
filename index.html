@@ -346,6 +346,26 @@
     }
     .persona-total { font-family: 'Baloo 2', cursive; font-size: 0.9rem; font-weight: 800; color: #6C5CE7; white-space: nowrap; }
 
+    /* ── Guardar (invitado) ── */
+    .persona-save-row { padding: 0 10px 10px; }
+    .btn-save-guest {
+      width: 100%; padding: 9px; background: #12B886; color: #fff;
+      border: 2px solid #1B1A2E; border-radius: 10px; font-family: 'Baloo 2', cursive;
+      font-weight: 800; font-size: 0.82rem; cursor: pointer; box-shadow: 0 3px 0 #1B1A2E;
+      transition: all .1s;
+    }
+    .btn-save-guest:hover { background: #0ca678; }
+    .btn-save-guest:active { transform: translateY(3px); box-shadow: none; }
+    .btn-save-guest.loading {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      opacity: .85; cursor: not-allowed;
+    }
+    .btn-save-guest.loading::before {
+      content: ''; width: 13px; height: 13px; border-radius: 50%; flex: 0 0 auto;
+      border: 2px solid rgba(255,255,255,.4); border-top-color: #fff;
+      animation: btn-spin .7s linear infinite;
+    }
+
     /* ── Add persona ── */
     .btn-add-persona {
       width: 100%; margin-top: 10px; padding: 9px;
@@ -826,7 +846,10 @@ let S = {
 // ─────────────────────────────────────────────────────
 function save() {
   try { localStorage.setItem(LS_KEY, JSON.stringify(S)); } catch(e) {}
-  if (MODE !== 'solo') schedulePush();
+  // el invitado nunca sincroniza solo mientras escribe — todo se manda de una
+  // sola vez al tocar "Guardar" (ver guardarMisGastos). El host sí se sigue
+  // sincronizando automático, porque sus propios datos no compiten con nadie.
+  if (MODE === 'host') schedulePush();
 }
 
 function loadFromLocalStorage() {
@@ -1406,7 +1429,9 @@ function buildCard(p) {
   // header
   if (!p.emoji) p.emoji = randomAnimal();
   const nickPhs = T.persona.nicknamePlaceholders;
-  const ph = nickPhs[(p.id - 1) % nickPhs.length];
+  // Math.abs/floor porque un borrador de invitado (aún no guardado en el
+  // servidor) usa un id local negativo/decimal como marcador temporal.
+  const ph = nickPhs[Math.abs(Math.floor(p.id - 1)) % nickPhs.length];
   const hdr = el('div', 'persona-header');
   hdr.innerHTML = `
     <button class="btn-persona-emoji" onclick="changePersonaEmoji(${p.id})" title="${T.persona.emojiTitle}" ${isMine ? '' : 'disabled'}>${p.emoji}</button>
@@ -1465,6 +1490,16 @@ function buildCard(p) {
     <div class="persona-total" id="pt-${p.id}">${fmt(0)}</div>
   `;
   card.appendChild(foot);
+
+  // el invitado nunca sincroniza solo mientras escribe — todo se manda de
+  // una vez al tocar "Guardar" (evita el choque de dos personas escribiendo
+  // al mismo tiempo). El host sigue sincronizándose automático como siempre.
+  if (isMine && MODE === 'guest') {
+    const saveRow = el('div', 'persona-save-row');
+    saveRow.innerHTML = `<button class="btn-save-guest" id="btn-save-${p.id}" onclick="guardarMisGastos(${p.id})">${T.live.saveGuestButton}</button>`;
+    card.appendChild(saveRow);
+  }
+
   return card;
 }
 
@@ -1931,12 +1966,26 @@ function updateLiveIndicator() {
 }
 
 // ── Sumarse a una sesión (invitado) ──
-async function addPersonaGuest() {
+// Invitado: se agrega 100% local, sin avisar al servidor todavía — así nadie
+// más ve una tarjeta vacía mientras está escribiendo su nombre/gastos. Recién
+// se reserva un id real y se manda todo junto al tocar "Guardar".
+function addPersonaGuestDraft() {
   if (!liveSession) return;
-  // un invitado solo puede sumarse una vez (el host sí puede seguir agregando
-  // gente, para cuando carga los datos de quienes no tienen celular a mano)
-  if (MODE === 'guest' && liveSession.myPersonaIds.length > 0) return;
+  if (liveSession.myPersonaIds.length > 0) return; // un invitado solo se suma una vez
 
+  const draftId = -(Date.now() + Math.random());
+  S.personas.push({ id: draftId, name: '', emoji: randomAnimal(), items: [{ id: uid(), name: '', price: '' }], paid: false });
+  liveSession.myPersonaIds.push(draftId);
+  saveSession();
+  try { localStorage.setItem(LS_KEY, JSON.stringify(S)); } catch (e) {}
+  renderPersonas();
+  focusPersonaNameInput(draftId);
+  updateLiveIndicator(); // esconde el botón "Sumarme" — ya no puede sumarse otra vez
+}
+
+// Host: agregar gente sigue igual que siempre — se sincroniza automático,
+// no compite con nadie por sus propios datos.
+async function addPersonaHost() {
   const unnamed = S.personas.find(p => liveSession.myPersonaIds.includes(p.id) && (!p.name || !p.name.trim()));
   if (unnamed) {
     await customAlert(T.persona.needNameBeforeAdding);
@@ -1961,7 +2010,6 @@ async function addPersonaGuest() {
     renderPersonas();
     addItem(data.personaId);
     focusPersonaNameInput(data.personaId);
-    updateLiveIndicator(); // esconde el botón de "Sumarme" — ya no puede sumarse otra vez
   } catch (e) {
     const ph = document.getElementById(placeholderId);
     if (ph) ph.remove();
@@ -1969,8 +2017,53 @@ async function addPersonaGuest() {
   }
 }
 
+// Invitado: manda de una vez nombre + gastos (recién ahí se crea de verdad
+// en el servidor si todavía era un borrador local) — nunca se manda solo
+// mientras escribe, para que nadie se pise con nadie.
+async function guardarMisGastos(id) {
+  if (!liveSession) return;
+  const p = S.personas.find(p => p.id === id);
+  if (!p) return;
+
+  const btn = document.getElementById('btn-save-' + id);
+  const originalText = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.classList.add('loading'); btn.textContent = T.live.savingGuest; }
+
+  try {
+    let realId = id;
+    if (id < 0) {
+      const { ok, data } = await apiCall(liveSession.sessionId + '/persona', { method: 'POST' });
+      if (!ok) throw new Error('save_failed');
+      realId = data.personaId;
+      p.id = realId;
+      liveSession.myPersonaIds = liveSession.myPersonaIds.map(pid => pid === id ? realId : pid);
+      saveSession();
+    }
+
+    const { ok: okPut } = await apiCall(liveSession.sessionId + '/persona/' + realId, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: p.name, emoji: p.emoji, items: p.items, paid: p.paid })
+    });
+    if (!okPut) throw new Error('save_failed');
+
+    // de paso, saber la versión más nueva para no reprocesar el propio eco en el próximo poll
+    const { ok: okGet, data: freshData } = await apiCall(liveSession.sessionId);
+    if (okGet && typeof freshData.version === 'number') lastPushedVersion = freshData.version;
+
+    try { localStorage.setItem(LS_KEY, JSON.stringify(S)); } catch (e) {}
+    renderPersonas();
+    showToast(T.live.savedToast);
+  } catch (e) {
+    await customAlert(T.live.saveFailed);
+  } finally {
+    if (btn) { btn.disabled = false; btn.classList.remove('loading'); btn.textContent = originalText; }
+  }
+}
+
 function handleAddPersonaClick() {
-  if (MODE === 'guest' || MODE === 'host') return addPersonaGuest();
+  if (MODE === 'guest') return addPersonaGuestDraft();
+  if (MODE === 'host') return addPersonaHost();
   return addPersona();
 }
 
@@ -2063,6 +2156,11 @@ function mergeRemote(remote) {
     const local = S.personas.find(lp => lp.id === rp.id);
     return local || rp; // si ya la tengo local, es siempre más fresca que el eco del servidor
   });
+  // borrador de invitado (id negativo) que todavía no se guardó — el
+  // servidor ni lo conoce, así que no aparece en remotePersonas. Si no lo
+  // preservamos acá, el próximo poll lo haría desaparecer solo.
+  const remoteIds = new Set(remotePersonas.map(p => p.id));
+  S.personas.filter(p => myIds.has(p.id) && !remoteIds.has(p.id)).forEach(draft => newPersonas.push(draft));
 
   const newTotal = iOwnMeta ? S.total : (remote.total || '');
   const newPct = iOwnMeta ? S.pct : (remote.pct || '');
