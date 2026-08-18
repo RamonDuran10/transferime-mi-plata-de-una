@@ -6,6 +6,7 @@
 // ─────────────────────────────────────────────────────
 const T = {
   pageTitle: '¿Paga tu wea?',
+  pageLoader: 'Cargando la wea...',
 
   header: {
     emoji: '🍻',

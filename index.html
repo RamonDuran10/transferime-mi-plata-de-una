@@ -62,6 +62,22 @@
     }
     h1 .emoji { display: inline-block; animation: wiggle 2.4s ease-in-out infinite; }
 
+    /* ── Loader de página completa ── */
+    .page-loader {
+      position: fixed; inset: 0; z-index: 1000;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+      background: #FFF3E0; background-image: radial-gradient(#FFD9A0 2px, transparent 2px);
+      background-size: 20px 20px;
+      opacity: 1; transition: opacity .25s ease-out, visibility 0s linear 0s;
+    }
+    .page-loader.hide { opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .25s ease-out, visibility 0s linear .25s; }
+    .page-loader-spinner {
+      width: 40px; height: 40px; border-radius: 50%;
+      border: 4px solid #E4E0F0; border-top-color: #6C5CE7;
+      animation: btn-spin .7s linear infinite;
+    }
+    #pageLoaderText { font-family: 'Baloo 2', cursive; font-weight: 700; font-size: 0.9rem; color: #1B1A2E; }
+
     .usage-row {
       display: flex; justify-content: center; align-items: center; flex-wrap: wrap;
       gap: 8px; margin: -4px 0 12px;
@@ -588,6 +604,12 @@
   </style>
 </head>
 <body>
+
+<!-- Loader de página completa — bloquea hasta que cargan los datos (localStorage o sesión en vivo) -->
+<div class="page-loader" id="pageLoader">
+  <div class="page-loader-spinner"></div>
+  <span id="pageLoaderText"></span>
+</div>
 
 <h1><span class="emoji"></span> <span id="headerTitleText"></span></h1>
 <div class="usage-row">
@@ -2019,6 +2041,9 @@ async function bootstrapGuestFromHash() {
 function applyStrings() {
   document.title = T.pageTitle;
 
+  const pageLoaderText = document.getElementById('pageLoaderText');
+  if (pageLoaderText) pageLoaderText.textContent = T.pageLoader;
+
   const emojiEl = document.querySelector('h1 .emoji');
   if (emojiEl) emojiEl.textContent = T.header.emoji;
   const titleEl = document.getElementById('headerTitleText');
@@ -2124,20 +2149,26 @@ function applyStrings() {
 //  INIT
 // ─────────────────────────────────────────────────────
 (async () => {
-  applyStrings();
-  await load();
-  loadUsageCounter();
+  try {
+    applyStrings();
+    await load();
+    loadUsageCounter();
 
-  if (!S.currency) S.currency = detectCurrency();
-  updateCurrencySelect();
+    if (!S.currency) S.currency = detectCurrency();
+    updateCurrencySelect();
 
-  if (S.total) document.getElementById('totalBill').value = formatAmountInput(S.total);
-  updateTipSelect();
+    if (S.total) document.getElementById('totalBill').value = formatAmountInput(S.total);
+    updateTipSelect();
 
-  renderAll();
-  applyCreatedState();
-  updateLiveIndicator();
-  initInstallBanner();
+    renderAll();
+    applyCreatedState();
+    updateLiveIndicator();
+    initInstallBanner();
+  } finally {
+    // pase lo que pase, nunca dejar la app bloqueada detrás del loader
+    const pageLoader = document.getElementById('pageLoader');
+    if (pageLoader) pageLoader.classList.add('hide');
+  }
 })();
 </script>
 
