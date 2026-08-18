@@ -19,7 +19,7 @@ export const T = {
   },
 
   topbar: {
-    totalPlaceholder: '¿Cuánto salió en total?',
+    totalPlaceholder: '¿total + propina?',
     totalTitle: 'Anota la suma antes de que empiece el debate',
     currencyTitle: 'Moneda',
     currencyOptions: { CLP: '🇨🇱 CLP', USD: '🇺🇸 USD', ARS: '🇦🇷 ARS', EUR: '🇪🇺 EUR' },
@@ -29,6 +29,7 @@ export const T = {
     share: '📤 ¡Publicar/compartir detalle!',
     shareTitle: 'Manda el resumen al grupo para ponerse al día',
     resetTitle: 'Borrar todo',
+    resetButton: '🗑️ Limpiar todo',
     shareFriends: '🔗 Compartir la app',
     shareFriendsTitle: 'Saca el QR o el link para los demás',
     createAccount: '✨ Crear cuenta',
@@ -36,12 +37,6 @@ export const T = {
     confirmReset: '¿Empezar de cero? Se borra todo lo que llevamos 🗑️',
     metaLockedTitle: '🔒 El total y la propina se fijan al publicar la cuenta — ya no se pueden cambiar',
     confirmCurrencyChange: 'Cambiar de moneda borra los montos que ya escribiste (no se convierten automáticamente, para no calcular mal). ¿Continuar?'
-  },
-
-  lock: {
-    banner: '🔒 Todo listo y calado — solo lectura',
-    edit: '✏️ Editar',
-    editTitle: 'Desbloquear para cambiar algo'
   },
 
   receipt: {
@@ -138,6 +133,7 @@ export const T = {
   install: {
     androidMessage: '📲 Instálala en tu celular pa\' tenerla siempre a mano',
     androidButton: 'Instalar',
+    dismissTitle: 'Cerrar',
     iosMessage: '📲 Tenla siempre a mano: toca el ícono ⬆️ de Compartir de Safari (no el de esta app) y busca "Agregar a inicio"'
   },
 
@@ -191,6 +187,10 @@ export const T = {
     tipPersonLine: (pct, amt) => `  📊 Propina (${pct}%): +${amt}`,
     matches: '✅ ¡Cuadra perfecto, nadie se enoja 🎉',
     sum: amt => `Suma: ${amt}`
+  },
+
+  footer: {
+    credit: 'Creado por Monship'
   },
 
   share: {

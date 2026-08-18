@@ -32,6 +32,9 @@ export default function App() {
         <Routes>
           <Route path="/" element={<CalculatorPage />} />
           <Route path="/compartir" element={<SharePage />} />
+          {/* cualquier otra ruta (ej. un start_url viejo tipo /index.html cacheado
+              en un celular) cae acá en vez de quedar en blanco */}
+          <Route path="*" element={<CalculatorPage />} />
         </Routes>
       </AppProviders>
     </BrowserRouter>

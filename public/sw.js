@@ -1,6 +1,6 @@
 // Ojo: subir este número cada vez que se necesite invalidar a la fuerza el
 // caché de un despliegue anterior (borra los caches viejos en 'activate').
-const CACHE = 'pagame-v3';
+const CACHE = 'pagame-v4';
 
 // Solo se precachean assets ESTABLES (nunca cambian de nombre entre
 // builds). El JS/CSS que genera Vite lleva un hash en el nombre de archivo

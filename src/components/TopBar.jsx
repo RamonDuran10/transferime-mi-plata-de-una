@@ -6,7 +6,7 @@ import { T } from '../i18n/es';
 
 export default function TopBar({ onShare }) {
   const state = useBillState();
-  const { setTotal, setCurrency, setPct, resetAll } = useBillActions();
+  const { setTotal, setCurrency, setPct } = useBillActions();
   const { setInfoModalOpen } = useModalOpen();
 
   // el total y la propina los fija el host una sola vez, antes de publicar —
@@ -54,7 +54,6 @@ export default function TopBar({ onShare }) {
       <div className="top-bar-row top-bar-actions">
         <button className="btn-share" onClick={onShare} title={T.topbar.shareTitle}>{T.topbar.share}</button>
         <button className="btn-info" onClick={() => setInfoModalOpen(true)} title={T.info.buttonTitle}>ⓘ</button>
-        <button className="btn-reset" onClick={resetAll} title={T.topbar.resetTitle}>🗑️</button>
       </div>
     </div>
   );

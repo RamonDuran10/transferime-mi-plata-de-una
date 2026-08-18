@@ -116,25 +116,6 @@
     .btn-receipt.loaded { background: #4DABF7; color: #fff; }
     .btn-receipt.loaded:hover { background: #2b96e8; }
 
-    /* ── Lock mode ── */
-    .locked input, .locked select { pointer-events: none !important; background: #F3F0FF !important; color: #4a5568 !important; }
-    .locked .btn-add-item, .locked .btn-dup-item, .locked .btn-remove-item,
-    .locked .btn-remove-persona, .locked .btn-add-persona,
-    .locked .btn-add-shared { display: none !important; }
-    .locked #totalBill { pointer-events: none; background: #F3F0FF; }
-    .locked .tip-select { pointer-events: none; opacity: .6; }
-    .locked .currency-select { pointer-events: none; opacity: .6; }
-    .lock-banner {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 7px 10px; background: #B2F2BB; border: 2px solid #1B1A2E;
-      border-radius: 12px; margin-bottom: 10px; font-size: 0.8rem; color: #1B1A2E; font-weight: 700;
-    }
-    .btn-unlock {
-      background: #fff; border: 2px solid #1B1A2E; color: #1B1A2E;
-      border-radius: 8px; padding: 3px 9px; font-size: 0.72rem; cursor: pointer; font-weight: 700;
-    }
-    .btn-unlock:hover { background: #FFF3E0; }
-
     /* ── Sesión en vivo ── */
     .live-indicator {
       display: flex; align-items: center; justify-content: space-between; gap: 8px;
@@ -153,8 +134,6 @@
     .guest-mode #totalBill,
     .guest-mode .currency-select,
     .guest-mode .tip-select { pointer-events: none !important; opacity: .65; }
-    /* host o invitado: "Nueva cuenta" queda oculto para no romper la sesión por accidente */
-    .live-mode .btn-reset { display: none !important; }
     /* en vivo: solo compartidos administrados por quien creó la cuenta */
     .guest-mode .shared-card input,
     .guest-mode .shared-card select { pointer-events: none !important; opacity: .7; }
@@ -188,8 +167,7 @@
     /* ── Cuenta todavía no creada: formulario deshabilitado ── */
     .not-created .top-bar input,
     .not-created .top-bar select { pointer-events: none !important; opacity: .5; }
-    .not-created .top-bar-actions .btn-share,
-    .not-created .top-bar-actions .btn-reset { display: none !important; }
+    .not-created .top-bar-actions .btn-share { display: none !important; }
     .not-created .shared-card,
     .not-created .personas-list,
     .not-created .btn-add-persona,
@@ -202,12 +180,6 @@
     }
     .btn-share:hover { background: #5A4BD6; }
     .btn-share:active { transform: translateY(2px); box-shadow: none; }
-    .btn-reset {
-      padding: 7px 9px; background: #fff; color: #1B1A2E;
-      border: 2px solid #1B1A2E; border-radius: 10px; font-size: 0.78rem;
-      cursor: pointer; transition: all .15s;
-    }
-    .btn-reset:hover { background: #FFE3E3; border-color: #FF5D5D; }
     .btn-info {
       flex: 0 0 auto; width: 34px; height: 34px; padding: 0;
       background: #fff; color: #4DABF7; font-size: 0.95rem; font-weight: 800;
@@ -634,4 +606,20 @@
     @media (prefers-reduced-motion: reduce) {
       .bg-figure { animation: none; transform: rotate(var(--rotate)); }
     }
+
+    /* ── Limpiar todo (fuera de la tarjeta) ── */
+    .btn-clear-all {
+      display: block; width: 100%; margin-top: 14px;
+      padding: 9px 12px; background: #fff; color: #1B1A2E;
+      border: 2px solid #1B1A2E; border-radius: 12px; font-size: 0.82rem; font-weight: 700;
+      cursor: pointer; transition: all .15s;
+    }
+    .btn-clear-all:hover { background: #FFE3E3; border-color: #FF5D5D; color: #FF5D5D; }
+
+    /* ── Footer ── */
+    .app-footer {
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      margin-top: 22px; opacity: .55; font-size: 0.78rem; font-weight: 700;
+    }
+    .app-footer img { width: 22px; height: auto; display: block; }
   

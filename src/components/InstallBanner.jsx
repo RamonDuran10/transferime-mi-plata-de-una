@@ -11,7 +11,7 @@ export default function InstallBanner() {
         {showAction && (
           <button className="btn-install-action" onClick={install}>{T.install.androidButton}</button>
         )}
-        <button className="btn-install-dismiss" onClick={dismiss} title="Cerrar">✕</button>
+        <button className="btn-install-dismiss" onClick={dismiss} title={T.install.dismissTitle}>✕</button>
       </div>
     </div>
   );
