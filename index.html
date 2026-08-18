@@ -853,24 +853,37 @@ async function load() {
     return;
   }
 
-  // ¿veníamos de una sesión en vivo (recarga de página, sin hash)?
+  // ¿veníamos de una sesión en vivo (abriste la app normal, sin link de
+  // invitación)? No la retomamos solos — se pregunta, para no arrastrar
+  // sin querer una cuenta vieja al abrir la app de cero.
   const existing = loadSessionFromStorage();
   if (existing) {
-    const { ok, status, data } = await apiCall(existing.sessionId).catch(() => ({ ok: false }));
-    if (ok && !data.closed) {
-      liveSession = existing;
-      MODE = existing.role;
-      S = {
-        total: data.total || '', pct: data.pct || '', currency: data.currency || '',
-        personaCount: 0, created: true,
-        shared: (data.shared || []).map(i => ({ id: i.id, name: i.name || '', price: i.price || '' })),
-        personas: (data.personas || []).map(p => ({ id: p.id, name: p.name || '', emoji: p.emoji || '', items: (p.items || []).map(i => ({ id: i.id, name: i.name || '', price: i.price || '' })), paid: !!p.paid }))
-      };
-      lastSeenVersion = data.version || 0;
-      startPolling();
+    const wantsResume = await customConfirm(T.live.resumePrompt, {
+      okText: T.live.resumeContinue, cancelText: T.live.resumeNew
+    });
+    if (wantsResume) {
+      const { ok, status, data } = await apiCall(existing.sessionId).catch(() => ({ ok: false }));
+      if (ok && !data.closed) {
+        liveSession = existing;
+        MODE = existing.role;
+        S = {
+          total: data.total || '', pct: data.pct || '', currency: data.currency || '',
+          personaCount: 0, created: true,
+          shared: (data.shared || []).map(i => ({ id: i.id, name: i.name || '', price: i.price || '' })),
+          personas: (data.personas || []).map(p => ({ id: p.id, name: p.name || '', emoji: p.emoji || '', items: (p.items || []).map(i => ({ id: i.id, name: i.name || '', price: i.price || '' })), paid: !!p.paid }))
+        };
+        lastSeenVersion = data.version || 0;
+        startPolling();
+      } else {
+        // la sesión ya no existe/está cerrada — se cae a la cuenta local normal
+        clearSession();
+        showToast(T.live.sessionExpired);
+      }
     } else {
-      // la sesión ya no existe/está cerrada — se cae a la cuenta local normal
+      // "Cuenta nueva": se limpia la sesión guardada y arranca de cero
       clearSession();
+      S = { total: '', pct: '', currency: S.currency, personaCount: 0, shared: [], personas: [], created: false };
+      try { localStorage.setItem(LS_KEY, JSON.stringify(S)); } catch (e) {}
     }
   }
 }
@@ -1202,16 +1215,35 @@ function updateShared(id, field, val) {
 
 function renderShared() {
   const c = document.getElementById('sharedList');
-  c.innerHTML = '';
 
+  let hdr = c.querySelector(':scope > .items-header');
   if (S.shared.length > 0) {
-    const hdr = el('div', 'items-header cols4s');
+    if (!hdr) { hdr = el('div', 'items-header cols4s'); c.insertBefore(hdr, c.firstChild); }
     hdr.innerHTML = `<span>${T.shared.columnWhat}</span><span>${T.shared.columnPrice}</span><span></span><span></span>`;
-    c.appendChild(hdr);
+  } else if (hdr) {
+    hdr.remove();
   }
 
+  // mismo diff por fila que en renderPersonas(): si un ítem no cambió, se
+  // reordena el nodo existente en vez de recrearlo (no corta el teclado).
+  const existingRows = new Map();
+  c.querySelectorAll(':scope > .item-row[data-iid]').forEach(node => {
+    existingRows.set(String(node.dataset.iid), node);
+  });
+  const seenIds = new Set();
+
   S.shared.forEach(item => {
+    const key = String(item.id);
+    seenIds.add(key);
+    const snapshot = JSON.stringify(item);
+    const existing = existingRows.get(key);
+    if (existing && existing.dataset.snapshot === snapshot) {
+      c.appendChild(existing);
+      return;
+    }
     const row = el('div', 'item-row cols4s');
+    row.dataset.iid = key;
+    row.dataset.snapshot = snapshot;
     row.innerHTML = `
       <input type="text"   placeholder="${T.shared.namePlaceholder}"  value="${esc(item.name)}"
         oninput="updateShared(${item.id},'name',this.value)" />
@@ -1221,7 +1253,10 @@ function renderShared() {
       <button class="btn-remove-item" onclick="removeSharedItem(${item.id})" title="${T.shared.removeTitle}">✕</button>
     `;
     c.appendChild(row);
+    if (existing) existing.remove();
   });
+
+  existingRows.forEach((node, key) => { if (!seenIds.has(key)) node.remove(); });
 }
 
 // ─────────────────────────────────────────────────────
@@ -1329,8 +1364,36 @@ function updateItem(pid, iid, field, val) {
 // ─────────────────────────────────────────────────────
 function renderPersonas() {
   const list = document.getElementById('personasList');
-  list.innerHTML = '';
-  S.personas.forEach(p => list.appendChild(buildCard(p)));
+  // las tarjetas "uniéndote" son transitorias — nunca deben quedar pegadas
+  list.querySelectorAll('.persona-card.pending').forEach(n => n.remove());
+
+  // Diff por tarjeta en vez de destruir y reconstruir todo: si tu propia
+  // tarjeta no cambió (nunca cambia por datos remotos — ver mergeRemote),
+  // se reordena el mismo nodo sin recrearlo, así el teclado no se cierra
+  // ni se pierde el cursor mientras alguien más edita lo suyo en paralelo.
+  const existingCards = new Map();
+  list.querySelectorAll(':scope > .persona-card[data-pid]').forEach(node => {
+    existingCards.set(Number(node.dataset.pid), node);
+  });
+  const seenIds = new Set();
+  const ownershipKey = MODE + '|' + (liveSession ? liveSession.myPersonaIds.join(',') : '');
+
+  S.personas.forEach(p => {
+    seenIds.add(p.id);
+    const snapshot = JSON.stringify(p) + '|' + ownershipKey;
+    const existing = existingCards.get(p.id);
+    if (existing && existing.dataset.snapshot === snapshot) {
+      list.appendChild(existing); // mueve el nodo ya existente, no lo recrea
+      return;
+    }
+    const fresh = buildCard(p);
+    fresh.dataset.pid = p.id;
+    fresh.dataset.snapshot = snapshot;
+    list.appendChild(fresh);
+    if (existing) existing.remove();
+  });
+
+  existingCards.forEach((node, pid) => { if (!seenIds.has(pid)) node.remove(); });
   recalc();
 }
 
