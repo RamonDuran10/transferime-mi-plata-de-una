@@ -112,14 +112,37 @@ export const T = {
 
   info: {
     buttonTitle: '¿Cómo funciona?',
+    hint: '¡Así funciona!',
     title: '🤔 ¿Cómo se juega esto?',
+    prev: '← Atrás',
+    next: 'Siguiente →',
+    done: '¡Listo! 🎉',
     steps: [
-      '✨ Toca "Crear cuenta" para activar el formulario.',
-      '💰 Anota el total de la boleta, elige la moneda, métele propina si cae, y agrega arriba lo que se pidió para compartir entre todos (ej. las papas fritas).',
-      '🔴 Toca "Poner esta cuenta en vivo" y publícala — el total, la propina y lo compartido quedan fijos desde acá, ya no se pueden cambiar.',
-      '🐵 Ahora cualquiera con el link o el QR toca "Sumarme", anota lo que pidió, y le da "Guardar" — cada quien carga lo suyo, sin pisarse entre ellos.',
-      '👑 Cuando la cuenta cuadre, marca quién pagó pa\' que le quede su corona.',
-      '📤 Toca "Publicar/compartir detalle", copia el resumen y mándalo al grupo — pa\' que te paguen al tiro jaja.'
+      {
+        emoji: '✨',
+        title: '1. Crea tu cuenta',
+        text: 'Toca "Crear cuenta" y anota el total de la boleta, la moneda, y la propina si aplica.'
+      },
+      {
+        emoji: '🍟',
+        title: '2. Agrega lo compartido',
+        text: 'Anota arriba lo que se pidió para compartir entre todos (ej. las papas fritas).'
+      },
+      {
+        emoji: '🔴',
+        title: '3. Publica la cuenta',
+        text: 'Toca "Poner esta cuenta en vivo" pa\' que tus colegas puedan entrar con el QR o el link.'
+      },
+      {
+        emoji: '🐵',
+        title: '4. Sumarme',
+        text: 'Cada uno toca "Sumarme", anota lo que consumió, y le da "Guardar".'
+      },
+      {
+        emoji: '📤',
+        title: '5. Comparte el resultado',
+        text: 'Cuando la cuenta cuadre, comparte el detalle pa\' que te paguen a ti o le paguen al garzón.'
+      }
     ]
   },
 

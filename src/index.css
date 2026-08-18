@@ -85,7 +85,6 @@
     /* ── Top bar ── */
     .top-bar { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
     .top-bar-row { display: flex; align-items: center; gap: 8px; }
-    .top-bar label { font-weight: 700; white-space: nowrap; font-size: 0.82rem; }
     .top-bar input {
       flex: 1; padding: 7px 10px;
       border: 2px solid #1B1A2E; border-radius: 10px;
@@ -186,6 +185,42 @@
       border: 2px solid #1B1A2E; border-radius: 999px; cursor: pointer; transition: all .15s;
     }
     .btn-info:hover { background: #EAF6FF; border-color: #4DABF7; }
+
+    /* ── Globito "¡Así funciona!" a la derecha del botón de info ──
+       vive en el flujo normal (no absolute) para que nunca tape ni se
+       corte contra el borde de la pantalla — si no entra, se va a su
+       propia línea, igual que los demás chips de esta fila. */
+    @keyframes info-hint-bounce {
+      0%, 100% { transform: translateX(0); }
+      50% { transform: translateX(3px); }
+    }
+    .info-hint-bubble {
+      position: relative; flex: 0 0 auto;
+      display: flex; align-items: center; gap: 5px; white-space: nowrap;
+      background: #FFD9A0; color: #1B1A2E; border: 2px solid #1B1A2E; border-radius: 12px;
+      padding: 6px 10px; margin-left: 6px; font-size: 0.72rem; font-weight: 700; cursor: pointer;
+      box-shadow: 2px 2px 0 #1B1A2E;
+      animation: info-hint-bounce 1.6s ease-in-out infinite;
+    }
+    /* colita apuntando al botón: triángulo negro (borde) + uno más chico
+       encima del color de la burbuja, para simular un contorno de 2px */
+    .info-hint-bubble::before {
+      content: ''; position: absolute; top: 50%; right: 100%;
+      transform: translateY(-50%);
+      border: 8px solid transparent; border-right: 8px solid #1B1A2E;
+    }
+    .info-hint-bubble::after {
+      content: ''; position: absolute; top: 50%; right: 100%;
+      transform: translateY(-50%); margin-right: -2px;
+      border: 6px solid transparent; border-right: 6px solid #FFD9A0;
+    }
+    .info-hint-dismiss {
+      flex: 0 0 auto; background: none; border: none; padding: 0; margin: 0 -2px 0 2px;
+      color: #6B6684; font-size: 0.68rem; line-height: 1; cursor: pointer;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .info-hint-bubble { animation: none; }
+    }
 
 
     /* ── Shared card ── */
@@ -503,18 +538,42 @@
     }
     .modal-done-subtitle { font-size: 0.8rem; color: #6B6684; font-weight: 500; line-height: 1.4; }
 
-    /* ── Modal ¿cómo funciona? ── */
-    .info-steps { list-style: none; display: flex; flex-direction: column; gap: 10px; padding-bottom: 4px; }
-    .info-steps li {
-      display: flex; gap: 10px; align-items: flex-start;
-      font-size: 0.85rem; color: #1B1A2E; line-height: 1.4;
+    /* ── Modal ¿cómo funciona? (wizard de tarjetas) ── */
+    .wizard-card {
+      text-align: center; padding: 26px 16px; border-radius: 16px;
+      background: #FFF3E0; background-image: radial-gradient(#FFD9A0 2px, transparent 2px);
+      background-size: 20px 20px;
+      border: 2.5px solid #1B1A2E; box-shadow: 3px 3px 0 #1B1A2E;
+      min-height: 175px; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 8px;
     }
-    .info-steps .step-num {
-      flex: 0 0 auto; width: 24px; height: 24px; border-radius: 999px;
-      background: #6C5CE7; color: #fff; border: 2px solid #1B1A2E;
-      display: flex; align-items: center; justify-content: center;
-      font-family: 'Baloo 2', cursive; font-weight: 800; font-size: 0.75rem;
+    .wizard-emoji { font-size: 2.6rem; line-height: 1; }
+    .wizard-title {
+      font-family: 'Baloo 2', cursive; font-weight: 800; font-size: 1rem; color: #1B1A2E;
     }
+    .wizard-text { font-size: 0.83rem; color: #6B6684; line-height: 1.45; max-width: 320px; }
+
+    .wizard-dots { display: flex; justify-content: center; align-items: center; gap: 7px; margin: 12px 0; }
+    .wizard-dot {
+      width: 9px; height: 9px; padding: 0; border-radius: 999px;
+      background: #E4E0F0; border: 1.5px solid #1B1A2E; cursor: pointer; transition: all .15s;
+    }
+    .wizard-dot.active { background: #6C5CE7; transform: scale(1.2); }
+
+    .wizard-nav { display: flex; gap: 8px; }
+    .btn-wizard-prev, .btn-wizard-next {
+      flex: 1; padding: 9px; border: 2.5px solid #1B1A2E; border-radius: 10px;
+      font-family: 'Baloo 2', cursive; font-weight: 700; font-size: 0.82rem;
+      cursor: pointer; transition: all .1s;
+    }
+    .btn-wizard-prev { background: #fff; color: #1B1A2E; }
+    .btn-wizard-prev:hover { background: #FFF3E0; }
+    .btn-wizard-prev:disabled { opacity: .35; cursor: not-allowed; }
+    .btn-wizard-next {
+      background: #6C5CE7; color: #fff; box-shadow: 0 3px 0 #1B1A2E;
+    }
+    .btn-wizard-next:hover { background: #5A4BD6; }
+    .btn-wizard-next:active { transform: translateY(3px); box-shadow: none; }
 
     /* ── Modal de confirmación/aviso genérico ── */
     .custom-dialog-title {
@@ -622,4 +681,5 @@
       margin-top: 22px; opacity: .55; font-size: 0.78rem; font-weight: 700;
     }
     .app-footer img { width: 22px; height: auto; display: block; }
+    .app-footer-version { font-weight: 500; opacity: .75; }
   

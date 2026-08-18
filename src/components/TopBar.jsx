@@ -1,13 +1,11 @@
 import { useBillState } from '../context/BillContext';
 import { useBillActions } from '../hooks/useBillActions';
-import { useModalOpen } from '../context/ModalOpenContext';
 import { reformatAmountValue } from '../lib/currency';
 import { T } from '../i18n/es';
 
 export default function TopBar({ onShare }) {
   const state = useBillState();
   const { setTotal, setCurrency, setPct } = useBillActions();
-  const { setInfoModalOpen } = useModalOpen();
 
   // el total y la propina los fija el host una sola vez, antes de publicar —
   // una vez en vivo quedan de solo lectura para todos (host incluido)
@@ -16,7 +14,6 @@ export default function TopBar({ onShare }) {
   return (
     <div className="top-bar">
       <div className="top-bar-row top-bar-total">
-        <label htmlFor="totalBill" title={T.topbar.totalTitle}>💰</label>
         <input
           type="text" inputMode="decimal" id="totalBill"
           placeholder={T.topbar.totalPlaceholder}
@@ -53,7 +50,6 @@ export default function TopBar({ onShare }) {
       </div>
       <div className="top-bar-row top-bar-actions">
         <button className="btn-share" onClick={onShare} title={T.topbar.shareTitle}>{T.topbar.share}</button>
-        <button className="btn-info" onClick={() => setInfoModalOpen(true)} title={T.info.buttonTitle}>ⓘ</button>
       </div>
     </div>
   );
