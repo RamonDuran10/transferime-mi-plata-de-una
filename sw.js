@@ -13,6 +13,8 @@ self.addEventListener('activate', e => {
 });
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
+  // Las rutas de la sesión en vivo nunca se cachean — siempre tienen que ir a la red.
+  if (new URL(e.request.url).pathname.startsWith('/api/')) return;
   e.respondWith(caches.match(e.request).then(hit => hit || fetch(e.request).then(res => {
     const copy = res.clone();
     caches.open(CACHE).then(c => c.put(e.request, copy)).catch(() => {});

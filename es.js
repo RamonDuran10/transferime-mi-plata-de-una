@@ -105,11 +105,6 @@ const T = {
     closeTitle: 'Cerrar',
     copy: '📋 Copiar',
     copied: '✓ ¡Copiado!',
-    relayLabel: '🔗 Link para que sigan agregando lo suyo',
-    relayLabelTitle: 'Cualquiera que abra este link va a ver la cuenta hasta ahora y podrá sumar lo suyo',
-    copyRelay: 'Copiar link',
-    copiedRelay: '✓ ¡Copiado!',
-    relayWarning: 'El link se está poniendo largo — igual funciona, pero conviene cerrar la cuenta pronto 😅',
     doneTitle: '🎉 ¡Listo, quedó la cuenta lista!',
     doneSubtitle: 'Hicimos lo que pudimos — si aun así no te pagan, ya no es cosa nuestra 😂🤷'
   },
@@ -135,12 +130,34 @@ const T = {
   install: {
     androidMessage: '📲 Instálala en tu celular pa\' tenerla siempre a mano',
     androidButton: 'Instalar',
-    iosMessage: '📲 Agrégala a tu pantalla de inicio: toca compartir (⬆️) y luego "Agregar a inicio"'
+    iosMessage: '📲 Tenla siempre a mano: toca el ícono ⬆️ de Compartir de Safari (no el de esta app) y busca "Agregar a inicio"'
+  },
+
+  live: {
+    goLiveButton: '🔴 Poner esta cuenta en vivo',
+    goLiveHint: 'Vamos a compartir esta cuenta en el momento — cualquiera con el link o el QR puede sumar lo suyo altiro',
+    goLiveFailed: 'No se pudo poner la cuenta en vivo — inténtalo de nuevo',
+    qrAlt: 'Código QR para unirse a esta cuenta en vivo',
+    linkLabel: '🔗 Link para unirse en vivo',
+    copyLink: 'Copiar link',
+    copiedLink: '✓ ¡Copiado!',
+    participants: n => `${n} persona${n === 1 ? '' : 's'} conectada${n === 1 ? '' : 's'}`,
+    closeSessionButton: '🔒 Cerrar sesión',
+    confirmCloseSession: '¿Seguro que quieres cerrar esta sesión en vivo? Nadie más va a poder sumar cosas',
+    hostBanner: '🔴 En vivo — comparte el QR para que sumen lo suyo',
+    bannerLive: name => `🔴 En vivo — cuenta de ${name || 'quien la creó'}`,
+    joinButton: '➕ Sumarme',
+    joining: 'Uniéndote...',
+    joinFailed: 'No se pudo sumar a la sesión — inténtalo de nuevo',
+    sessionExpired: '⌛ Esta sesión ya no existe (o expiró) — se abrió tu cuenta normal',
+    sessionClosed: '🔒 El que creó la cuenta la cerró — ya no se puede seguir sumando',
+    leaveSession: 'Salir',
+    confirmLeaveSession: '¿Salir de esta sesión en vivo? Puedes volver a entrar con el mismo link',
+    offlineBanner: '⚠️ Sin conexión — reintentando...',
+    balancedNote: '🎉 ¡Ya cuadró! Cierra la sesión cuando quieran'
   },
 
   toast: {
-    loaded: '📂 Cuenta cargada — ¡agrega lo tuyo y mándala de nuevo!',
-    loadFailed: '⚠️ No se pudo leer el link — se restauró tu cuenta guardada',
     confirmOverwrite: '¿Cargar la cuenta de ese link? Se reemplaza lo que tienes ahora'
   },
 
