@@ -7,6 +7,12 @@ import { computeResults, sharedTotalConPct } from '../lib/bill';
 import { parseAmount, fmt } from '../lib/currency';
 import { T } from '../i18n/es';
 
+// Vista "facturita": solo nombre y monto, sin íconos — pensada para leer
+// rápido al momento de pagar en caja.
+function buildTotalsText(results, currency) {
+  return results.map(r => `${r.name} — ${fmt(r.amount, currency)}`).join('\n');
+}
+
 function buildExportText(state, results, total, sharedPP, ok) {
   const currency = state.currency;
   const gPct = parseFloat(state.pct) || 0;
@@ -151,9 +157,9 @@ export default function ShareModal() {
   const state = useBillState();
   const { shareModalOpen, setShareModalOpen } = useModalOpen();
   const { bump } = useUsageCounter();
+  const [copiedTotals, setCopiedTotals] = useState(false);
   const [copied, setCopied] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
-  const [prevOpen, setPrevOpen] = useState(shareModalOpen);
 
   const total = parseAmount(state.total, state.currency) || 0;
   const n = state.personas.length;
@@ -163,15 +169,16 @@ export default function ShareModal() {
   const sum = results.reduce((s, r) => s + r.amount, 0);
   const ok = total > 0 && Math.abs(sum - total) < 1;
 
+  const totalsText = useMemo(() => buildTotalsText(results, state.currency), [results, state.currency]);
   const text = useMemo(() => buildExportText(state, results, total, sharedPP, ok), [state, results, total, sharedPP, ok]);
 
-  // se abre solo cuando la cuenta ya está completa, cada vez que se abre el
-  // modal — ajustado durante el render (no en un efecto) para no disparar
-  // una vuelta extra de renders innecesaria cada vez que se abre
-  if (shareModalOpen !== prevOpen) {
-    setPrevOpen(shareModalOpen);
-    if (shareModalOpen) setDetailOpen(ok);
-  }
+  const copyTotals = () => {
+    navigator.clipboard.writeText(totalsText).then(() => {
+      setCopiedTotals(true);
+      setTimeout(() => setCopiedTotals(false), 2000);
+    });
+    bump();
+  };
 
   const copyDetail = () => {
     navigator.clipboard.writeText(text).then(() => {
@@ -191,6 +198,22 @@ export default function ShareModal() {
         </div>
 
         <LiveSessionPanel ok={ok} />
+
+        {results.length > 0 && (
+          <div className="receipt-card">
+            <div className="receipt-title">{T.modal.totalsTitle}</div>
+            {results.map(r => (
+              <div className="receipt-row" key={r.id}>
+                <span className="receipt-name">{r.name}</span>
+                <span className="receipt-fill"></span>
+                <span className="receipt-amount">{fmt(r.amount, state.currency)}</span>
+              </div>
+            ))}
+            <button className="btn-copy" onClick={copyTotals}>
+              {copiedTotals ? T.modal.copied : T.modal.copy}
+            </button>
+          </div>
+        )}
 
         <details className="modal-detail-toggle" open={detailOpen} onToggle={e => setDetailOpen(e.target.open)}>
           <summary>{T.modal.detailSummary}</summary>

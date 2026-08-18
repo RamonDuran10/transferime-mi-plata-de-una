@@ -92,8 +92,17 @@
       background: #FFFDF7;
       outline: none; transition: box-shadow .15s;
     }
+    .top-bar-selects { flex-wrap: wrap; }
     .top-bar-selects select { flex: 1; min-width: 0; }
     .top-bar-actions .btn-share { flex: 1; }
+    .tip-check {
+      display: flex; align-items: center; gap: 6px; flex: 0 0 auto; white-space: nowrap;
+      font-size: 0.82rem; font-weight: 700; color: #1B1A2E; cursor: pointer;
+    }
+    .tip-check input[type="checkbox"] {
+      width: 18px; height: 18px; accent-color: #6C5CE7; cursor: pointer;
+    }
+    .tip-check:has(input:disabled) { opacity: .6; cursor: not-allowed; }
 
     @media (min-width: 700px) {
       .top-bar { flex-direction: row; flex-wrap: wrap; align-items: center; }
@@ -458,6 +467,27 @@
     .btn-copy:active { transform: translateY(3px); box-shadow: none; }
     .btn-copy.copied { background: #12B886; }
 
+    /* ── Facturita: solo nombre y monto, sin íconos, para leer rápido en caja ── */
+    .receipt-card {
+      background: #FAFAFE; border: 2px solid #1B1A2E; border-radius: 12px;
+      padding: 12px 14px; margin-top: 4px;
+    }
+    .receipt-title {
+      font-family: 'Baloo 2', cursive; font-weight: 800; font-size: 0.8rem;
+      color: #1B1A2E; margin-bottom: 8px; text-align: center;
+    }
+    .receipt-row {
+      display: flex; align-items: baseline; gap: 6px;
+      font-family: 'Courier New', Courier, monospace; font-size: 0.85rem;
+      color: #1B1A2E; padding: 3px 0;
+    }
+    .receipt-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .receipt-fill {
+      flex: 1 1 auto; min-width: 8px; border-bottom: 1.5px dotted #C9C3E0; margin-bottom: 3px;
+    }
+    .receipt-amount { white-space: nowrap; font-weight: 700; }
+    .receipt-card .btn-copy { margin-top: 10px; }
+
     /* ── Detalle colapsable (no ocupa espacio hasta que se abre) ── */
     .modal-detail-toggle {
       margin-top: 14px; padding-top: 14px; border-top: 2px dashed #E4E0F0;
@@ -668,7 +698,7 @@
 
     /* ── Limpiar todo (fuera de la tarjeta) ── */
     .btn-clear-all {
-      display: block; width: 100%; margin-top: 14px;
+      display: block; width: 80%; max-width: 1200px; margin: 14px auto 0;
       padding: 9px 12px; background: #fff; color: #1B1A2E;
       border: 2px solid #1B1A2E; border-radius: 12px; font-size: 0.82rem; font-weight: 700;
       cursor: pointer; transition: all .15s;

@@ -10,6 +10,7 @@ export default function TopBar({ onShare }) {
   // el total y la propina los fija el host una sola vez, antes de publicar —
   // una vez en vivo quedan de solo lectura para todos (host incluido)
   const metaLocked = !!state.liveSession;
+  const hasTip = (parseFloat(state.pct) || 0) > 0;
 
   return (
     <div className="top-bar">
@@ -35,18 +36,27 @@ export default function TopBar({ onShare }) {
             <option key={code} value={code}>{label}</option>
           ))}
         </select>
-        <select
-          className="tip-select" title={metaLocked ? T.topbar.metaLockedTitle : T.topbar.tipLabel}
-          value={String(parseFloat(state.pct) || 0)}
-          disabled={metaLocked}
-          onChange={e => setPct(parseInt(e.target.value, 10))}
-        >
-          {[0, 10, 15, 20].map(v => (
-            <option key={v} value={v} title={T.topbar.tipOptionTitle(v)}>
-              {v === 0 ? T.topbar.tipNone : `${v}%`}
-            </option>
-          ))}
-        </select>
+        <label className="tip-check">
+          <input
+            type="checkbox"
+            checked={hasTip}
+            disabled={metaLocked}
+            onChange={e => setPct(e.target.checked ? 10 : 0)}
+          />
+          {T.topbar.tipCheckLabel}
+        </label>
+        {hasTip && (
+          <select
+            className="tip-select" title={metaLocked ? T.topbar.metaLockedTitle : T.topbar.tipLabel}
+            value={String(parseFloat(state.pct) || 10)}
+            disabled={metaLocked}
+            onChange={e => setPct(parseInt(e.target.value, 10))}
+          >
+            {[10, 15, 20].map(v => (
+              <option key={v} value={v} title={T.topbar.tipOptionTitle(v)}>{v}%</option>
+            ))}
+          </select>
+        )}
       </div>
       <div className="top-bar-row top-bar-actions">
         <button className="btn-share" onClick={onShare} title={T.topbar.shareTitle}>{T.topbar.share}</button>

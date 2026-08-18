@@ -24,8 +24,8 @@ export const T = {
     currencyTitle: 'Moneda',
     currencyOptions: { CLP: '🇨🇱 CLP', USD: '🇺🇸 USD', ARS: '🇦🇷 ARS', EUR: '🇪🇺 EUR' },
     tipLabel: 'Propina',
-    tipNone: 'nada',
-    tipOptionTitle: pct => pct === 0 ? 'Sin propina' : `${pct}% de propina para los chiquillos`,
+    tipCheckLabel: '¿Incluye propina?',
+    tipOptionTitle: pct => `${pct}% de propina para los chiquillos`,
     share: '📤 ¡Publicar/compartir detalle!',
     shareTitle: 'Manda el resumen al grupo para ponerse al día',
     resetTitle: 'Borrar todo',
@@ -78,8 +78,7 @@ export const T = {
     removeItemTitle: 'Quitar',
     addItem: '+ Otro pedido',
     addItemTitle: 'Agregar otro gasto a esta persona',
-    addPersona: '+ Sumar a alguien',
-    addPersonaTitle: 'Agregar a otra persona a la junta',
+    addPersonaTitle: 'Sumarte a la cuenta con lo que consumiste',
     sharedPortion: name => name ? `🍻 ${name}` : '🍻 Lo compartido'
   },
 
@@ -105,6 +104,7 @@ export const T = {
     closeTitle: 'Cerrar',
     copy: '📋 Copiar',
     copied: '✓ ¡Copiado!',
+    totalsTitle: 'Total por persona',
     detailSummary: '📋 Ver detalle del reparto',
     doneTitle: '🎉 ¡Listo, quedó la cuenta lista!',
     doneSubtitle: 'Hicimos lo que pudimos — si aun así no te pagan, ya no es cosa nuestra 😂🤷'

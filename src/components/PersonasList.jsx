@@ -9,11 +9,9 @@ export default function PersonasList({ results }) {
 
   const isMineOf = (id) => state.mode === 'solo' || (state.liveSession && state.liveSession.myPersonaIds.includes(id));
 
-  const onAddClick = () => actions.handleAddPersonaClick();
-
-  // cada dispositivo (host o invitado) se suma una sola vez por sesión en vivo
-  const alreadyJoined = !!(state.liveSession && state.liveSession.joined);
-  const addLabel = state.liveSession ? T.live.joinButton : T.persona.addPersona;
+  // sumarse solo existe una vez publicada la cuenta — antes de eso no hay
+  // nadie a quien "agregar" (el creador solo define total/propina/compartido)
+  const canJoin = !!state.liveSession && !state.liveSession.joined;
 
   return (
     <>
@@ -38,9 +36,9 @@ export default function PersonasList({ results }) {
         })}
       </div>
 
-      {!alreadyJoined && (
-        <button className="btn-add-persona" onClick={onAddClick} title={T.persona.addPersonaTitle}>
-          {addLabel}
+      {canJoin && (
+        <button className="btn-add-persona" onClick={actions.addPersonaLiveDraft} title={T.persona.addPersonaTitle}>
+          {T.live.joinButton}
         </button>
       )}
     </>

@@ -11,7 +11,6 @@ const initialState = {
   pct: '',
   currency: '',
   created: false,
-  personaCount: 0, // contador monotónico — ids de persona en modo solo, nunca se reusan
   paidPersonaId: null, // quién pagó — es "meta" (como total/pct/currency): lo fija una sola
                         // vez quien crea la cuenta, así no hay que sincronizar el flag por
                         // persona (que rompería con el modelo de "cada quien es dueño de la suya")
@@ -62,7 +61,7 @@ function billReducer(state, action) {
       return {
         ...state,
         total: '', pct: '', currency: state.currency,
-        created: false, personaCount: 0, paidPersonaId: null, shared: [], personas: []
+        created: false, paidPersonaId: null, shared: [], personas: []
       };
 
     case 'SET_CURRENCY_DETECTED':
@@ -104,16 +103,6 @@ function billReducer(state, action) {
         ...state,
         shared: state.shared.map(i => i.id === action.id ? { ...i, [action.field]: action.value } : i)
       };
-
-    case 'ADD_PERSONA': {
-      // modo solo — el chequeo de "nombre pendiente" se hace antes de despachar (ver useBillActions)
-      const nextId = (state.personaCount || 0) + 1;
-      return {
-        ...state,
-        personaCount: nextId,
-        personas: [...state.personas, { id: nextId, name: '', emoji: action.emoji, items: [{ id: uid(), name: '', price: '' }] }]
-      };
-    }
 
     case 'CHANGE_PERSONA_EMOJI':
       return { ...state, personas: state.personas.map(p => p.id === action.id ? { ...p, emoji: action.emoji } : p) };
@@ -260,11 +249,11 @@ export function BillProvider({ children }) {
     try {
       localStorage.setItem(LS_KEY, JSON.stringify({
         total: state.total, pct: state.pct, currency: state.currency, created: state.created,
-        personaCount: state.personaCount, paidPersonaId: state.paidPersonaId,
+        paidPersonaId: state.paidPersonaId,
         shared: state.shared, personas: state.personas
       }));
     } catch { /* localStorage no disponible */ }
-  }, [state.total, state.pct, state.currency, state.created, state.personaCount, state.paidPersonaId, state.shared, state.personas]);
+  }, [state.total, state.pct, state.currency, state.created, state.paidPersonaId, state.shared, state.personas]);
 
   useEffect(() => {
     try {

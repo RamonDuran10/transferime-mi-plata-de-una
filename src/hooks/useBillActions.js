@@ -50,17 +50,6 @@ export function useBillActions() {
   const updateSharedItem = useCallback((id, field, value) =>
     dispatch({ type: 'UPDATE_SHARED_ITEM', id, field, value }), [dispatch]);
 
-  // ── Personas (modo solo) ──
-  const addPersona = useCallback(async () => {
-    const unnamed = state.personas.find(p => !p.name || !p.name.trim());
-    if (unnamed) {
-      await customAlert(T.persona.needNameBeforeAdding);
-      focusPersonaNameInput(unnamed.id);
-      return;
-    }
-    dispatch({ type: 'ADD_PERSONA', emoji: randomAnimal() });
-  }, [state.personas, customAlert, dispatch]);
-
   const changePersonaEmoji = useCallback((id) =>
     dispatch({ type: 'CHANGE_PERSONA_EMOJI', id, emoji: randomAnimal() }), [dispatch]);
 
@@ -153,11 +142,6 @@ export function useBillActions() {
     dispatch({ type: 'ADD_PERSONA_DRAFT', emoji: randomAnimal() });
   }, [state.personas, state.liveSession, customAlert, dispatch]);
 
-  const handleAddPersonaClick = useCallback(() => {
-    if (state.liveSession) return addPersonaLiveDraft();
-    return addPersona();
-  }, [state.liveSession, addPersonaLiveDraft, addPersona]);
-
   // Invitado: manda nombre + gastos de una sola vez (reemplaza el sync por-tecla)
   const guardarMisGastos = useCallback(async (id) => {
     const p = state.personas.find(p => p.id === id);
@@ -194,16 +178,16 @@ export function useBillActions() {
   return useMemo(() => ({
     createAccount, resetAll, setTotal, setPct, setCurrency,
     addSharedItem, dupSharedItem, removeSharedItem, updateSharedItem,
-    addPersona, changePersonaEmoji, removePersona, updatePersonaName, setPagador,
+    changePersonaEmoji, removePersona, updatePersonaName, setPagador,
     addItem, dupItem, removeItem, updateItem,
     goLive, confirmCloseLive, confirmLeaveLive, handleLiveIndicatorAction,
-    handleAddPersonaClick, guardarMisGastos
+    addPersonaLiveDraft, guardarMisGastos
   }), [
     createAccount, resetAll, setTotal, setPct, setCurrency,
     addSharedItem, dupSharedItem, removeSharedItem, updateSharedItem,
-    addPersona, changePersonaEmoji, removePersona, updatePersonaName, setPagador,
+    changePersonaEmoji, removePersona, updatePersonaName, setPagador,
     addItem, dupItem, removeItem, updateItem,
     goLive, confirmCloseLive, confirmLeaveLive, handleLiveIndicatorAction,
-    handleAddPersonaClick, guardarMisGastos
+    addPersonaLiveDraft, guardarMisGastos
   ]);
 }

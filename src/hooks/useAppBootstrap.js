@@ -9,7 +9,7 @@ import { T } from '../i18n/es';
 function normalizeRemoteBill(data) {
   return {
     total: data.total ? formatAmountInput(data.total, data.currency) : '', pct: data.pct || '', currency: data.currency || '',
-    created: true, personaCount: 0, paidPersonaId: data.paidPersonaId ?? null,
+    created: true, paidPersonaId: data.paidPersonaId ?? null,
     shared: (data.shared || []).map(i => ({ id: i.id, name: i.name || '', price: i.price || '' })),
     personas: (data.personas || []).map(p => ({
       id: p.id, name: p.name || '', emoji: p.emoji || '',
