@@ -1860,12 +1860,20 @@ function updateLiveIndicator() {
   const addBtn = document.querySelector('.btn-add-persona');
   if (addBtn) {
     addBtn.textContent = (MODE === 'guest' || MODE === 'host') ? T.live.joinButton : T.persona.addPersona;
+    // un invitado solo puede sumarse UNA vez — una vez que ya tiene su tarjeta,
+    // el botón queda oculto (no tiene sentido crear una segunda persona).
+    const alreadyJoined = MODE === 'guest' && liveSession && liveSession.myPersonaIds.length > 0;
+    addBtn.style.display = alreadyJoined ? 'none' : '';
   }
 }
 
 // ── Sumarse a una sesión (invitado) ──
 async function addPersonaGuest() {
   if (!liveSession) return;
+  // un invitado solo puede sumarse una vez (el host sí puede seguir agregando
+  // gente, para cuando carga los datos de quienes no tienen celular a mano)
+  if (MODE === 'guest' && liveSession.myPersonaIds.length > 0) return;
+
   const unnamed = S.personas.find(p => liveSession.myPersonaIds.includes(p.id) && (!p.name || !p.name.trim()));
   if (unnamed) {
     await customAlert(T.persona.needNameBeforeAdding);
@@ -1890,6 +1898,7 @@ async function addPersonaGuest() {
     renderPersonas();
     addItem(data.personaId);
     focusPersonaNameInput(data.personaId);
+    updateLiveIndicator(); // esconde el botón de "Sumarme" — ya no puede sumarse otra vez
   } catch (e) {
     const ph = document.getElementById(placeholderId);
     if (ph) ph.remove();
@@ -1970,36 +1979,60 @@ function hideConnectionBanner() {
   if (b) b.classList.remove('show');
 }
 
-const LIVE_INPUT_IDS_PREFIX = ['totalBill', 'pname-', 'iname-', 'iprice-', 'sname-', 'sprice-'];
-
 function mergeRemote(remote) {
-  const active = document.activeElement;
-  let preserved = null;
-  if (active && active.id) {
-    preserved = { id: active.id, value: active.value, selStart: active.selectionStart, selEnd: active.selectionEnd };
-  }
+  // Cada dispositivo es la única fuente de verdad de lo suyo: mi propia
+  // persona nunca se pisa con lo que llega del servidor (nadie más puede
+  // editarla), y lo mismo pasa con el total/propina/moneda/compartidos si
+  // soy quien creó la cuenta. Así se elimina la pelea entre lo que uno
+  // escribe y lo que llega del poll — y de paso, si al final no cambió nada
+  // relevante para esta pantalla, ni se toca el DOM (evita el "salto" de
+  // reconstruir toda la lista sin necesidad).
+  const myIds = new Set(liveSession ? liveSession.myPersonaIds : []);
+  const iOwnMeta = MODE === 'host'; // solo el host edita total/propina/moneda/compartidos
 
-  S.total = remote.total || '';
-  S.pct = remote.pct || '';
-  S.currency = remote.currency || '';
-  S.created = true;
-  S.shared = (remote.shared || []).map(i => ({ id: i.id, name: i.name || '', price: i.price || '' }));
-  S.personas = (remote.personas || []).map(p => ({
-    id: p.id, name: p.name || '', emoji: p.emoji || '', items: (p.items || []).map(i => ({ id: i.id, name: i.name || '', price: i.price || '' })), paid: !!p.paid
+  const remotePersonas = (remote.personas || []).map(p => ({
+    id: p.id, name: p.name || '', emoji: p.emoji || '',
+    items: (p.items || []).map(i => ({ id: i.id, name: i.name || '', price: i.price || '' })),
+    paid: !!p.paid
   }));
+  const newPersonas = remotePersonas.map(rp => {
+    if (!myIds.has(rp.id)) return rp;
+    const local = S.personas.find(lp => lp.id === rp.id);
+    return local || rp; // si ya la tengo local, es siempre más fresca que el eco del servidor
+  });
+
+  const newTotal = iOwnMeta ? S.total : (remote.total || '');
+  const newPct = iOwnMeta ? S.pct : (remote.pct || '');
+  const newCurrency = iOwnMeta ? S.currency : (remote.currency || '');
+  const newShared = iOwnMeta ? S.shared : (remote.shared || []).map(i => ({ id: i.id, name: i.name || '', price: i.price || '' }));
+
+  const unchanged =
+    JSON.stringify(newPersonas) === JSON.stringify(S.personas) &&
+    JSON.stringify(newShared) === JSON.stringify(S.shared) &&
+    newTotal === S.total && newPct === S.pct && newCurrency === S.currency;
+
+  S.total = newTotal; S.pct = newPct; S.currency = newCurrency;
+  S.created = true; S.shared = newShared; S.personas = newPersonas;
   try { localStorage.setItem(LS_KEY, JSON.stringify(S)); } catch (e) {}
+
+  if (unchanged) { updateLiveIndicator(); return; }
+
+  // si justo estabas escribiendo en tu propia tarjeta, se guarda para
+  // devolverte el foco/cursor después del repintado — tu dato nunca se pisa,
+  // esto es solo para que no se te corte el teclado a mitad de tecleo
+  const active = document.activeElement;
+  const preserved = (active && active.id) ? { id: active.id, selStart: active.selectionStart, selEnd: active.selectionEnd } : null;
 
   updateTipSelect();
   updateCurrencySelect();
   const totalInput = document.getElementById('totalBill');
-  if (totalInput) totalInput.value = formatAmountInput(S.total);
+  if (totalInput && document.activeElement !== totalInput) totalInput.value = formatAmountInput(S.total);
   renderAll();
   updateLiveIndicator();
 
   if (preserved) {
     const elActive = document.getElementById(preserved.id);
     if (elActive && typeof elActive.focus === 'function') {
-      elActive.value = preserved.value;
       elActive.focus();
       if (typeof elActive.setSelectionRange === 'function') {
         try { elActive.setSelectionRange(preserved.selStart, preserved.selEnd); } catch (e) {}
