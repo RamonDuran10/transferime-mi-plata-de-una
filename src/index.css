@@ -1,0 +1,612 @@
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    @keyframes wiggle { 0%,100% { transform: rotate(-6deg); } 50% { transform: rotate(6deg); } }
+
+    body {
+      font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #FFF3E0;
+      background-image: radial-gradient(#FFD9A0 2px, transparent 2px);
+      background-size: 26px 26px;
+      min-height: 100vh;
+      padding: 16px 12px 40px;
+      color: #1B1A2E;
+      font-size: 13px;
+    }
+
+    h1 {
+      text-align: center; font-family: 'Baloo 2', cursive; font-size: 1.5rem; font-weight: 800;
+      margin-bottom: 12px; color: #1B1A2E; letter-spacing: -.5px;
+    }
+    h1 .emoji { display: inline-block; animation: wiggle 2.4s ease-in-out infinite; }
+
+    /* ── Loader de página completa ── */
+    .page-loader {
+      /* por debajo de .modal-overlay (z-index:100) — si algún diálogo necesita
+         mostrarse mientras carga (ej. sesión expirada), no debe quedar tapado */
+      position: fixed; inset: 0; z-index: 50;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+      background: #FFF3E0; background-image: radial-gradient(#FFD9A0 2px, transparent 2px);
+      background-size: 20px 20px;
+      opacity: 1; transition: opacity .25s ease-out, visibility 0s linear 0s;
+    }
+    .page-loader.hide { opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .25s ease-out, visibility 0s linear .25s; }
+    .page-loader-spinner {
+      width: 40px; height: 40px; border-radius: 50%;
+      border: 4px solid #E4E0F0; border-top-color: #6C5CE7;
+      animation: btn-spin .7s linear infinite;
+    }
+    #pageLoaderText { font-family: 'Baloo 2', cursive; font-weight: 700; font-size: 0.9rem; color: #1B1A2E; }
+
+    .usage-row {
+      display: flex; justify-content: center; align-items: center; flex-wrap: wrap;
+      gap: 8px; margin: -4px 0 12px;
+    }
+    .usage-badge {
+      /* visibility (no display:none) para reservar el espacio desde el
+         primer render — si aparece recién cuando responde el fetch del
+         contador, empuja .main-card hacia abajo y dispara un CLS enorme. */
+      display: inline-flex; align-items: center; visibility: hidden;
+      font-family: 'Baloo 2', cursive; font-weight: 700; font-size: 0.78rem;
+      background: #fff; border: 2px solid #1B1A2E; border-radius: 999px;
+      padding: 4px 12px; box-shadow: 2px 2px 0 #1B1A2E; color: #1B1A2E;
+    }
+    .usage-badge.show { visibility: visible; }
+    .btn-share-friends {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-family: 'Baloo 2', cursive; font-weight: 700; font-size: 0.78rem;
+      background: #6C5CE7; color: #fff; border: 2px solid #1B1A2E; border-radius: 999px;
+      padding: 4px 12px; box-shadow: 2px 2px 0 #1B1A2E; text-decoration: none;
+      transition: all .1s;
+    }
+    .btn-share-friends:hover { background: #5A4BD6; }
+    .btn-share-friends:active { transform: translateY(2px); box-shadow: none; }
+    .btn-crear-cuenta {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-family: 'Baloo 2', cursive; font-weight: 700; font-size: 0.78rem;
+      background: #12B886; color: #fff; border: 2px solid #1B1A2E; border-radius: 999px;
+      padding: 4px 12px; box-shadow: 2px 2px 0 #1B1A2E; cursor: pointer;
+      transition: all .1s;
+    }
+    .btn-crear-cuenta:hover { background: #0ca678; }
+    .btn-crear-cuenta:active { transform: translateY(2px); box-shadow: none; }
+
+    .main-card {
+      width: 80%;
+      max-width: 1200px;
+      margin: 0 auto;
+      background: #fff;
+      border: 2.5px solid #1B1A2E;
+      border-radius: 18px;
+      padding: 14px;
+      box-shadow: 4px 4px 0 #1B1A2E;
+    }
+
+    /* ── Top bar ── */
+    .top-bar { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+    .top-bar-row { display: flex; align-items: center; gap: 8px; }
+    .top-bar label { font-weight: 700; white-space: nowrap; font-size: 0.82rem; }
+    .top-bar input {
+      flex: 1; padding: 7px 10px;
+      border: 2px solid #1B1A2E; border-radius: 10px;
+      font-size: 0.95rem; font-weight: 700; color: #1B1A2E;
+      background: #FFFDF7;
+      outline: none; transition: box-shadow .15s;
+    }
+    .top-bar-selects select { flex: 1; min-width: 0; }
+    .top-bar-actions .btn-share { flex: 1; }
+
+    @media (min-width: 700px) {
+      .top-bar { flex-direction: row; flex-wrap: wrap; align-items: center; }
+      .top-bar-row { flex: 0 0 auto; }
+      .top-bar-total { flex: 1 1 auto; }
+      .top-bar-selects select { flex: 0 0 auto; }
+      .top-bar-actions { margin-left: auto; }
+      .top-bar-actions .btn-share { flex: 0 0 auto; }
+    }
+    .top-bar input:focus { box-shadow: 0 0 0 3px #FFD9A0; }
+
+    .btn-receipt {
+      padding: 7px 11px; background: #EAF6FF; color: #12609E;
+      border: 2px solid #1B1A2E; border-radius: 10px; font-size: 0.78rem; font-weight: 700;
+      cursor: pointer; white-space: nowrap; transition: all .15s;
+    }
+    .btn-receipt:hover { background: #D7EDFF; }
+    .btn-receipt.loaded { background: #4DABF7; color: #fff; }
+    .btn-receipt.loaded:hover { background: #2b96e8; }
+
+    /* ── Lock mode ── */
+    .locked input, .locked select { pointer-events: none !important; background: #F3F0FF !important; color: #4a5568 !important; }
+    .locked .btn-add-item, .locked .btn-dup-item, .locked .btn-remove-item,
+    .locked .btn-remove-persona, .locked .btn-add-persona,
+    .locked .btn-add-shared { display: none !important; }
+    .locked #totalBill { pointer-events: none; background: #F3F0FF; }
+    .locked .tip-select { pointer-events: none; opacity: .6; }
+    .locked .currency-select { pointer-events: none; opacity: .6; }
+    .lock-banner {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 7px 10px; background: #B2F2BB; border: 2px solid #1B1A2E;
+      border-radius: 12px; margin-bottom: 10px; font-size: 0.8rem; color: #1B1A2E; font-weight: 700;
+    }
+    .btn-unlock {
+      background: #fff; border: 2px solid #1B1A2E; color: #1B1A2E;
+      border-radius: 8px; padding: 3px 9px; font-size: 0.72rem; cursor: pointer; font-weight: 700;
+    }
+    .btn-unlock:hover { background: #FFF3E0; }
+
+    /* ── Sesión en vivo ── */
+    .live-indicator {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      background: #FFE3E3; border: 2px solid #FF5D5D; border-radius: 12px;
+      padding: 7px 10px; margin-bottom: 10px; font-size: 0.78rem; font-weight: 700; color: #1B1A2E;
+    }
+    .live-indicator #liveIndicatorText {
+      flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .btn-leave-live {
+      flex: 0 0 auto; background: #fff; border: 2px solid #1B1A2E; border-radius: 8px;
+      padding: 3px 9px; font-size: 0.7rem; font-weight: 700; cursor: pointer; transition: background .15s;
+    }
+    .btn-leave-live:hover { background: #FFF3E0; }
+    /* invitado: total/propina/moneda de solo lectura, pero puede sumar gente/ítems */
+    .guest-mode #totalBill,
+    .guest-mode .currency-select,
+    .guest-mode .tip-select { pointer-events: none !important; opacity: .65; }
+    /* host o invitado: "Nueva cuenta" queda oculto para no romper la sesión por accidente */
+    .live-mode .btn-reset { display: none !important; }
+    /* en vivo: solo compartidos administrados por quien creó la cuenta */
+    .guest-mode .shared-card input,
+    .guest-mode .shared-card select { pointer-events: none !important; opacity: .7; }
+    .guest-mode .btn-add-shared,
+    .guest-mode .shared-card .btn-dup-item,
+    .guest-mode .shared-card .btn-remove-item { display: none !important; }
+    /* eliminar personas: privilegio exclusivo de quien creó la cuenta —
+       ningún invitado puede sacar a nadie, ni siquiera a sí mismo */
+    .guest-mode .btn-remove-persona { display: none !important; }
+    .persona-card.pending { opacity: .55; }
+    .persona-card.pending .persona-header { justify-content: center; padding: 14px 10px; }
+
+    /* tarjeta de otra persona en sesión en vivo: solo lectura, cada quien controla la suya */
+    .persona-card.readonly-card { background: #FAF9FC; }
+    .persona-card.readonly-card .persona-header input {
+      pointer-events: none !important; background: #F3F0FF !important; color: #6B6684;
+    }
+    .persona-card.readonly-card .item-row input {
+      pointer-events: none !important; background: #F3F0FF !important; color: #6B6684;
+    }
+    .persona-card.readonly-card .btn-persona-emoji,
+    .persona-card.readonly-card .btn-persona-paid,
+    .persona-card.readonly-card .btn-add-item,
+    .persona-card.readonly-card .btn-dup-item,
+    .persona-card.readonly-card .btn-remove-item { display: none !important; }
+    .readonly-badge { flex: 0 0 auto; font-size: 0.85rem; opacity: .6; }
+
+    /* ── Cuenta todavía no creada: formulario deshabilitado ── */
+    .not-created .top-bar input,
+    .not-created .top-bar select { pointer-events: none !important; opacity: .5; }
+    .not-created .top-bar-actions .btn-share,
+    .not-created .top-bar-actions .btn-reset { display: none !important; }
+    .not-created .shared-card,
+    .not-created .personas-list,
+    .not-created .btn-add-persona,
+    .not-created .summary { opacity: .35; pointer-events: none; filter: grayscale(.4); }
+
+    .btn-share {
+      padding: 7px 12px; background: #6C5CE7; color: #fff;
+      border: 2px solid #1B1A2E; border-radius: 10px; font-size: 0.78rem; font-weight: 700;
+      cursor: pointer; white-space: nowrap; box-shadow: 0 2px 0 #1B1A2E; transition: all .1s;
+    }
+    .btn-share:hover { background: #5A4BD6; }
+    .btn-share:active { transform: translateY(2px); box-shadow: none; }
+    .btn-reset {
+      padding: 7px 9px; background: #fff; color: #1B1A2E;
+      border: 2px solid #1B1A2E; border-radius: 10px; font-size: 0.78rem;
+      cursor: pointer; transition: all .15s;
+    }
+    .btn-reset:hover { background: #FFE3E3; border-color: #FF5D5D; }
+    .btn-info {
+      flex: 0 0 auto; width: 34px; height: 34px; padding: 0;
+      background: #fff; color: #4DABF7; font-size: 0.95rem; font-weight: 800;
+      border: 2px solid #1B1A2E; border-radius: 999px; cursor: pointer; transition: all .15s;
+    }
+    .btn-info:hover { background: #EAF6FF; border-color: #4DABF7; }
+
+
+    /* ── Shared card ── */
+    .shared-card {
+      border: 2.5px dashed #4DABF7; border-radius: 14px;
+      overflow: hidden; margin-bottom: 10px; background: #EAF6FF;
+    }
+    .shared-header {
+      display: flex; align-items: center; gap: 6px;
+      padding: 7px 10px; background: #BEE3F8;
+      font-family: 'Baloo 2', cursive; font-size: 0.85rem; font-weight: 800; color: #12609E;
+    }
+    .shared-header span.title { flex: 1; }
+    .shared-total-badge {
+      font-size: 0.72rem; background: #4DABF7; color: #fff;
+      border: 1.5px solid #1B1A2E; border-radius: 999px; padding: 2px 9px; font-weight: 700;
+    }
+
+    /* ── Personas ── */
+    .personas-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .persona-card {
+      border: 2.5px solid #1B1A2E; border-radius: 16px; overflow: hidden;
+      box-shadow: 3px 3px 0 #1B1A2E; background: #fff;
+    }
+    .persona-card.is-payer { border-color: #FFB020; box-shadow: 3px 3px 0 #FFB020; }
+    .persona-header { display: flex; align-items: center; gap: 6px; background: #FFFDF7; padding: 7px 10px; }
+    .persona-header input {
+      flex: 1; border: 2px solid #1B1A2E; background: #fff; border-radius: 8px;
+      padding: 4px 8px; font-family: 'Baloo 2', cursive; font-size: 0.85rem; font-weight: 700; color: #1B1A2E;
+      outline: none; transition: box-shadow .15s;
+    }
+    .persona-header input:focus { box-shadow: 0 0 0 3px #FFD9A0; }
+    .persona-header input::placeholder { color: #A9A4BD; font-weight: 400; }
+    .btn-persona-emoji {
+      flex: 0 0 auto; width: 32px; height: 32px; font-size: 1.05rem; line-height: 1;
+      border: 2px solid #1B1A2E; border-radius: 9px; background: #FFD9A0; cursor: pointer;
+      transition: transform .15s;
+    }
+    .btn-persona-emoji:hover { transform: rotate(-8deg) scale(1.05); }
+    .btn-persona-paid {
+      flex: 0 0 auto; background: none; border: none; cursor: pointer;
+      font-size: 1.05rem; line-height: 1; opacity: .3; filter: grayscale(1);
+      transition: all .15s;
+    }
+    .btn-persona-paid:hover { opacity: .65; }
+    .btn-persona-paid.is-paid { opacity: 1; filter: none; transform: scale(1.1); }
+    .btn-remove-persona {
+      background: #fff; border: 2px solid #1B1A2E; cursor: pointer; color: #FF5D5D;
+      font-size: 0.75rem; font-weight: 700; width: 24px; height: 24px; border-radius: 7px; transition: background .15s;
+    }
+    .btn-remove-persona:hover { background: #FFE3E3; }
+
+    /* ── Items ── */
+    .items-list { padding: 7px 10px; display: flex; flex-direction: column; gap: 4px; }
+    .items-header { display: grid; gap: 4px; padding: 0 0 2px; }
+    .items-header span { font-size: 0.65rem; color: #6B6684; font-weight: 600; }
+    .item-row { display: grid; gap: 4px; align-items: center; }
+
+    /* cols: name | price | dup | del */
+    .items-header.cols4, .item-row.cols4 { grid-template-columns: 1fr 88px 22px 22px; }
+    .items-header.cols4s, .item-row.cols4s { grid-template-columns: 1fr 88px 22px 22px; }
+
+    .item-row input {
+      padding: 4px 7px; border: 2px solid #E4E0F0; border-radius: 8px;
+      font-size: 0.78rem; color: #1B1A2E; outline: none; transition: border-color .15s; width: 100%;
+      background: #FAFAFE;
+    }
+    .item-row input:focus { border-color: #6C5CE7; }
+    .item-row input::placeholder { color: #A9A4BD; }
+    .item-row input.price { font-weight: 700; }
+
+    .btn-dup-item, .btn-remove-item {
+      background: none; border: none; cursor: pointer;
+      font-size: 0.8rem; line-height: 1; padding: 3px; border-radius: 6px; transition: color .15s;
+    }
+    .btn-dup-item { color: #6C5CE7; } .btn-dup-item:hover { color: #4a3ec9; background: #F3F0FF; }
+    .btn-remove-item { color: #C9C3E0; } .btn-remove-item:hover { color: #FF5D5D; background: #FFE3E3; }
+
+    /* ── Footer ── */
+    .persona-footer {
+      padding: 5px 10px 8px; display: flex; align-items: center;
+      justify-content: space-between; gap: 8px;
+    }
+    .btn-add-item {
+      background: #fff; border: 2px dashed #C9C3E0; color: #6C5CE7;
+      border-radius: 8px; padding: 4px 10px; font-size: 0.72rem; font-weight: 700; cursor: pointer; transition: all .15s;
+    }
+    .btn-add-item:hover { border-color: #6C5CE7; background: #F3F0FF; }
+    .paid-badge {
+      font-size: 0.68rem; font-weight: 700; color: #92400e; background: #FFF3BF;
+      border: 1.5px solid #FFB020; border-radius: 999px; padding: 2px 8px; white-space: nowrap;
+    }
+    .persona-total { font-family: 'Baloo 2', cursive; font-size: 0.9rem; font-weight: 800; color: #6C5CE7; white-space: nowrap; }
+
+    /* ── Guardar (invitado) ── */
+    .persona-save-row { padding: 0 10px 10px; }
+    .btn-save-guest {
+      width: 100%; padding: 9px; background: #12B886; color: #fff;
+      border: 2px solid #1B1A2E; border-radius: 10px; font-family: 'Baloo 2', cursive;
+      font-weight: 800; font-size: 0.82rem; cursor: pointer; box-shadow: 0 3px 0 #1B1A2E;
+      transition: all .1s;
+    }
+    .btn-save-guest:hover { background: #0ca678; }
+    .btn-save-guest:active { transform: translateY(3px); box-shadow: none; }
+    .btn-save-guest.loading {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      opacity: .85; cursor: not-allowed;
+    }
+    .btn-save-guest.loading::before {
+      content: ''; width: 13px; height: 13px; border-radius: 50%; flex: 0 0 auto;
+      border: 2px solid rgba(255,255,255,.4); border-top-color: #fff;
+      animation: btn-spin .7s linear infinite;
+    }
+
+    /* ── Add persona ── */
+    .btn-add-persona {
+      width: 100%; margin-top: 10px; padding: 9px;
+      background: #6C5CE7; color: #fff; border: 2.5px solid #1B1A2E; border-radius: 13px;
+      font-family: 'Baloo 2', cursive; font-size: 0.9rem; font-weight: 700; cursor: pointer;
+      box-shadow: 0 3px 0 #1B1A2E; transition: all .1s;
+    }
+    .btn-add-persona:hover { background: #5A4BD6; }
+    .btn-add-persona:active { transform: translateY(3px); box-shadow: none; }
+
+    /* ── Resumen ── */
+    .summary {
+      margin-top: 14px; padding: 12px; border-radius: 16px;
+      background: #1B1A2E; color: #fff; border: 2.5px solid #1B1A2E; box-shadow: 4px 4px 0 #FFB020;
+    }
+    .summary h2 { font-family: 'Baloo 2', cursive; font-size: 1rem; font-weight: 800; margin-bottom: 8px; color: #fff; }
+    .summary-rows { display: flex; flex-direction: column; gap: 5px; }
+    .summary-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 6px 10px; background: #F7F5FF; border-radius: 10px; font-size: 0.8rem;
+    }
+    .summary-row .name { font-weight: 600; color: #1B1A2E; }
+    .summary-row .amount { font-family: 'Baloo 2', cursive; font-weight: 800; color: #1B1A2E; }
+    .summary-row-rico { background: #FFD9A0; }
+    .summary-shared-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 5px 10px; background: #EAF6FF; border-radius: 10px;
+      font-size: 0.75rem; color: #12609E; font-weight: 600;
+    }
+    .summary-total-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 7px 10px; border-radius: 10px; font-size: 0.85rem; font-weight: 700; margin-top: 3px;
+    }
+    .summary-total-row.ok      { background: #B2F2BB; color: #1B1A2E; }
+    .summary-total-row.warning { background: #FFF3BF; color: #1B1A2E; }
+    .summary-total-row.error   { background: #FFE3E3; color: #1B1A2E; }
+    .badge { font-size: 0.68rem; padding: 2px 9px; border-radius: 999px; font-weight: 700; border: 1.5px solid #1B1A2E; }
+    .badge-ok    { background: #12B886; color: #fff; }
+    .badge-warn  { background: #FFB020; color: #1B1A2E; }
+    .badge-error { background: #FF5D5D; color: #fff; }
+
+    /* ── Shared portion inside persona card ── */
+    .shared-portion {
+      padding: 5px 10px 7px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      border-top: 2px dashed #BEE3F8;
+      background: #EAF6FF;
+    }
+    .shared-portion-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.75rem;
+      color: #12609E;
+      font-weight: 600;
+      padding: 2px 0;
+    }
+    .shared-portion-name { font-weight: 500; }
+    .shared-portion-amt  { font-weight: 800; white-space: nowrap; }
+
+    /* ── Modal compartir ── */
+    .modal-overlay {
+      display: flex; position: fixed; inset: 0;
+      background: rgba(27,26,46,0.6); z-index: 100;
+      align-items: flex-end; justify-content: center; padding: 0;
+      opacity: 0; visibility: hidden; pointer-events: none;
+      transition: opacity .25s ease-out, visibility 0s linear .25s;
+    }
+    .modal-overlay.show {
+      opacity: 1; visibility: visible; pointer-events: auto;
+      transition: opacity .25s ease-out;
+    }
+    .modal {
+      background: #fff; border: 2.5px solid #1B1A2E; border-bottom: none;
+      border-radius: 20px 20px 0 0;
+      padding: 8px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+      width: 100%; max-width: 480px; max-height: 85vh; overflow-y: auto;
+      box-shadow: 0 -6px 0 #1B1A2E;
+      transform: translateY(100%);
+      transition: transform .3s cubic-bezier(.32,.72,0,1);
+    }
+    .modal-overlay.show .modal { transform: translateY(0); }
+    .modal-handle {
+      width: 40px; height: 5px; background: #E4E0F0; border-radius: 999px;
+      margin: 6px auto 10px;
+    }
+
+    @media (min-width: 700px) {
+      .modal-overlay { align-items: center; padding: 16px; }
+      .modal {
+        border-bottom: 2.5px solid #1B1A2E; border-radius: 16px;
+        padding: 16px; max-height: 90vh; box-shadow: 5px 5px 0 #1B1A2E;
+        transform: none;
+      }
+      .modal-handle { display: none; }
+    }
+    .modal-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 10px;
+    }
+    .modal-header h3 { font-family: 'Baloo 2', cursive; font-size: 0.95rem; font-weight: 800; color: #1B1A2E; }
+    .modal-close {
+      background: none; border: none; cursor: pointer; color: #6B6684; font-size: 1rem;
+    }
+    .modal textarea {
+      width: 100%; height: 260px; resize: none;
+      border: 2px solid #1B1A2E; border-radius: 10px;
+      padding: 10px; font-size: 0.82rem; line-height: 1.6;
+      color: #1B1A2E; font-family: inherit; outline: none;
+      background: #FAFAFE;
+    }
+    .btn-copy {
+      margin-top: 10px; width: 100%; padding: 9px;
+      background: #6C5CE7; color: #fff; border: 2.5px solid #1B1A2E; border-radius: 10px;
+      font-family: 'Baloo 2', cursive; font-size: 0.85rem; font-weight: 700; cursor: pointer;
+      box-shadow: 0 3px 0 #1B1A2E; transition: all .1s;
+    }
+    .btn-copy:hover { background: #5A4BD6; }
+    .btn-copy:active { transform: translateY(3px); box-shadow: none; }
+    .btn-copy.copied { background: #12B886; }
+
+    /* ── Detalle colapsable (no ocupa espacio hasta que se abre) ── */
+    .modal-detail-toggle {
+      margin-top: 14px; padding-top: 14px; border-top: 2px dashed #E4E0F0;
+    }
+    .modal-detail-toggle summary {
+      cursor: pointer; list-style: none; display: flex; align-items: center; gap: 6px;
+      font-family: 'Baloo 2', cursive; font-weight: 700; font-size: 0.85rem; color: #1B1A2E;
+      padding: 2px 0;
+    }
+    .modal-detail-toggle summary::-webkit-details-marker { display: none; }
+    .modal-detail-toggle summary::before {
+      content: '▸'; color: #6C5CE7; font-size: 0.8rem; transition: transform .15s;
+    }
+    .modal-detail-toggle[open] summary::before { transform: rotate(90deg); }
+    .modal-detail-toggle textarea { margin-top: 10px; }
+
+    .modal-live-section { margin-top: 0; }
+    .modal-live-section label {
+      display: block; font-size: 0.75rem; font-weight: 700; color: #6B6684; margin-bottom: 6px;
+    }
+    .btn-go-live {
+      width: 100%; padding: 10px; background: #FF5D5D; color: #fff;
+      border: 2.5px solid #1B1A2E; border-radius: 10px; font-family: 'Baloo 2', cursive;
+      font-weight: 800; font-size: 0.85rem; cursor: pointer; box-shadow: 0 3px 0 #1B1A2E;
+      transition: all .1s;
+    }
+    .btn-go-live:hover { background: #e84f4f; }
+    .btn-go-live:active { transform: translateY(3px); box-shadow: none; }
+    .btn-go-live.loading {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      opacity: .85; cursor: not-allowed;
+    }
+    .btn-go-live.loading::before {
+      content: ''; width: 14px; height: 14px; border-radius: 50%; flex: 0 0 auto;
+      border: 2px solid rgba(255,255,255,.4); border-top-color: #fff;
+      animation: btn-spin .7s linear infinite;
+    }
+    @keyframes btn-spin { to { transform: rotate(360deg); } }
+    .modal-live-hint { margin-top: 6px; font-size: 0.72rem; color: #6B6684; text-align: center; }
+    /* mismo "marco" de tarjeta que usa el QR de Share.html, para que se vea igual */
+    .qr-frame {
+      border: 2.5px solid #1B1A2E; border-radius: 16px;
+      padding: 10px; background: #FFFDF7;
+      box-shadow: 3px 3px 0 #1B1A2E;
+      display: block; width: fit-content; margin: 4px auto 14px;
+    }
+    .modal-live-qr { display: block; width: 160px; height: 160px; }
+    .modal-relay-row { display: flex; gap: 6px; }
+    .modal-relay-row input {
+      flex: 1; min-width: 0; padding: 8px 10px; border: 2px solid #1B1A2E; border-radius: 8px;
+      font-size: 0.72rem; color: #1B1A2E; background: #FAFAFE; outline: none;
+    }
+    .btn-copy-relay {
+      flex: 0 0 auto; padding: 8px 12px; background: #4DABF7; color: #fff;
+      border: 2px solid #1B1A2E; border-radius: 8px; font-family: 'Baloo 2', cursive;
+      font-weight: 700; font-size: 0.78rem; cursor: pointer; transition: background .15s;
+    }
+    .btn-copy-relay:hover { background: #2b96e8; }
+    .btn-copy-relay.copied { background: #12B886; }
+    .modal-live-participants {
+      margin-top: 8px; font-size: 0.75rem; color: #6B6684; text-align: center; font-weight: 600;
+    }
+    .btn-close-live {
+      width: 100%; margin-top: 10px; padding: 8px; background: #fff; color: #1B1A2E;
+      border: 2px solid #1B1A2E; border-radius: 10px; font-family: 'Baloo 2', cursive;
+      font-weight: 700; font-size: 0.78rem; cursor: pointer; transition: all .15s;
+    }
+    .btn-close-live:hover { background: #FFE3E3; border-color: #FF5D5D; }
+    .modal-done-card {
+      text-align: center; padding: 18px 14px; border-radius: 16px;
+      background: #FFF3E0; background-image: radial-gradient(#FFD9A0 2px, transparent 2px);
+      background-size: 20px 20px;
+      border: 2.5px solid #1B1A2E; box-shadow: 3px 3px 0 #1B1A2E;
+    }
+    .modal-done-title {
+      font-family: 'Baloo 2', cursive; font-weight: 800; font-size: 1.1rem;
+      color: #1B1A2E; margin-bottom: 6px; letter-spacing: -.3px;
+    }
+    .modal-done-subtitle { font-size: 0.8rem; color: #6B6684; font-weight: 500; line-height: 1.4; }
+
+    /* ── Modal ¿cómo funciona? ── */
+    .info-steps { list-style: none; display: flex; flex-direction: column; gap: 10px; padding-bottom: 4px; }
+    .info-steps li {
+      display: flex; gap: 10px; align-items: flex-start;
+      font-size: 0.85rem; color: #1B1A2E; line-height: 1.4;
+    }
+    .info-steps .step-num {
+      flex: 0 0 auto; width: 24px; height: 24px; border-radius: 999px;
+      background: #6C5CE7; color: #fff; border: 2px solid #1B1A2E;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Baloo 2', cursive; font-weight: 800; font-size: 0.75rem;
+    }
+
+    /* ── Modal de confirmación/aviso genérico ── */
+    .custom-dialog-title {
+      font-family: 'Baloo 2', cursive; font-size: 0.95rem; font-weight: 800;
+      color: #1B1A2E; margin-bottom: 8px;
+    }
+    .custom-dialog-message { font-size: 0.85rem; color: #1B1A2E; line-height: 1.5; padding-bottom: 16px; }
+    .custom-dialog-actions { display: flex; gap: 8px; }
+    .btn-dialog-cancel, .btn-dialog-ok {
+      flex: 1; padding: 10px; border: 2.5px solid #1B1A2E; border-radius: 10px;
+      font-family: 'Baloo 2', cursive; font-weight: 700; font-size: 0.85rem; cursor: pointer;
+      transition: all .1s;
+    }
+    .btn-dialog-cancel { background: #fff; color: #1B1A2E; }
+    .btn-dialog-cancel:hover { background: #FFE3E3; border-color: #FF5D5D; }
+    .btn-dialog-ok { background: #6C5CE7; color: #fff; box-shadow: 0 3px 0 #1B1A2E; }
+    .btn-dialog-ok:hover { background: #5A4BD6; }
+    .btn-dialog-ok:active { transform: translateY(3px); box-shadow: none; }
+
+    /* toast */
+    .toast {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      background: #1B1A2E; color: #fff; padding: 8px 18px; border-radius: 999px;
+      font-size: 0.82rem; font-weight: 600; opacity: 0; pointer-events: none;
+      transition: opacity .3s; z-index: 999; border: 2px solid #FFB020;
+    }
+    .toast.show { opacity: 1; }
+
+    /* ── Banner de "agregar a inicio" (PWA) ── */
+    .install-banner {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 90;
+      background: #1B1A2E; color: #fff;
+      padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px));
+      display: flex; align-items: center; justify-content: center; flex-wrap: wrap;
+      gap: 8px 12px; font-size: 0.78rem; font-weight: 600; text-align: center;
+      border-top: 2px solid #FFB020;
+      transform: translateY(100%); transition: transform .3s ease;
+    }
+    .install-banner.show { transform: translateY(0); }
+    .install-banner span { flex: 1 1 220px; min-width: 0; }
+    .install-banner-actions { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
+    .btn-install-action {
+      background: #FFB020; color: #1B1A2E; border: none; border-radius: 999px;
+      padding: 6px 14px; font-family: 'Baloo 2', cursive; font-weight: 800; font-size: 0.78rem; cursor: pointer;
+    }
+    .btn-install-dismiss {
+      background: none; border: none; color: #C9C3E0; font-size: 1rem; cursor: pointer; padding: 4px;
+    }
+
+    /* ── Selectores de moneda y propina ── */
+    .currency-select, .tip-select {
+      flex: 0 0 auto; font-family: 'Baloo 2', cursive; font-weight: 700; font-size: 0.85rem;
+      padding: 8px 10px; border: 2px solid #1B1A2E; border-radius: 10px;
+      background: #fff; color: #1B1A2E; cursor: pointer; outline: none;
+    }
+    .currency-select:focus, .tip-select:focus { box-shadow: 0 0 0 3px #FFD9A0; }
+
+    @media (max-width: 700px) {
+      .main-card { width: 100%; }
+      .personas-list { grid-template-columns: 1fr; }
+      /* Safari en iOS hace zoom automático al enfocar un campo con letra
+         menor a 16px, y la página queda "agrandada" hasta que el usuario
+         la achica a mano — forzar 16px en todos los campos lo evita. */
+      input, select, textarea { font-size: 16px !important; }
+    }
+
+    @media (max-width: 480px) {
+      .items-header.cols4, .item-row.cols4,
+      .items-header.cols4s, .item-row.cols4s { grid-template-columns: 1fr 74px 20px 20px; }
+    }
+  

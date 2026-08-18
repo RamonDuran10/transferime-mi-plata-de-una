@@ -4,3 +4,6 @@ playwright-report/
 playwright/.cache/
 .vercel
 .env*
+dist/
+dist-ssr/
+*.local

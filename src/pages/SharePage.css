@@ -1,0 +1,84 @@
+.share-page {
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #FFF3E0;
+  background-image: radial-gradient(#FFD9A0 2px, transparent 2px);
+  background-size: 26px 26px;
+  min-height: 100vh;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 48px 12px;
+  color: #1B1A2E;
+}
+
+.share-page .card-wrap { position: relative; width: 100%; max-width: 380px; }
+
+.share-page .ribbon {
+  position: absolute; top: -16px; left: -14px; z-index: 2;
+  background: #FFB020; border: 2.5px solid #1B1A2E; border-radius: 10px;
+  padding: 6px 14px; transform: rotate(-8deg);
+  font-family: 'Baloo 2', cursive; font-weight: 800; font-size: 0.78rem;
+  box-shadow: 3px 3px 0 #1B1A2E;
+  white-space: nowrap;
+}
+
+.share-page .card {
+  background: #fff;
+  border: 2.5px solid #1B1A2E;
+  border-radius: 20px;
+  padding: 28px 24px 24px;
+  box-shadow: 6px 6px 0 #1B1A2E;
+  text-align: center;
+}
+
+.share-page h1 {
+  font-family: 'Baloo 2', cursive; font-weight: 800; font-size: 1.4rem;
+  margin-bottom: 4px; letter-spacing: -.3px;
+}
+.share-page p.subtitle { font-size: .82rem; color: #6B6684; margin-bottom: 18px; }
+
+.share-page .qr-frame {
+  border: 2.5px solid #1B1A2E; border-radius: 16px;
+  padding: 10px; background: #FFFDF7;
+  box-shadow: 3px 3px 0 #1B1A2E;
+  display: inline-block; margin-bottom: 16px;
+}
+.share-page .qr-frame img { display: block; width: 230px; height: 230px; }
+
+.share-page .url-box {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  font-family: 'Baloo 2', cursive; font-weight: 700; font-size: .82rem;
+  background: #F3F0FF; border: 2px solid #1B1A2E; border-radius: 999px;
+  padding: 6px 6px 6px 16px; margin-bottom: 16px;
+  color: #4a3ec9;
+}
+.share-page .url-box span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.share-page .btn-copy-link {
+  flex: 0 0 auto;
+  font-family: 'Baloo 2', cursive; font-weight: 700; font-size: .78rem;
+  background: #1B1A2E; color: #fff; border: none; border-radius: 999px;
+  padding: 7px 14px; cursor: pointer; transition: background .15s;
+}
+.share-page .btn-copy-link:hover { background: #34324f; }
+.share-page .btn-copy-link.copied { background: #12B886; }
+
+.share-page .pills { display: flex; gap: 6px; justify-content: center; margin-bottom: 16px; flex-wrap: wrap; }
+.share-page .pill {
+  font-size: .72rem; font-weight: 700; padding: 5px 12px; border-radius: 999px;
+  border: 1.5px solid #1B1A2E;
+}
+.share-page .pill.green { background: #B2F2BB; color: #1B1A2E; }
+.share-page .pill.blue { background: #BEE3F8; color: #1B1A2E; }
+.share-page .pill.orange { background: #FFD9A0; color: #1B1A2E; }
+
+.share-page .divider { border: none; border-top: 2px dashed #E4E0F0; margin: 0 0 14px; }
+
+.share-page a.back {
+  display: inline-block; font-size: .78rem; font-weight: 600;
+  color: #6B6684; text-decoration: none;
+}
+.share-page a.back:hover { color: #6C5CE7; }
+
+.share-page p.tagline {
+  margin-top: 22px; text-align: center; font-size: .82rem; color: #8b86a3;
+  max-width: 320px;
+}
