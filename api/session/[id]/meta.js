@@ -16,6 +16,8 @@ module.exports = async (req, res) => {
     total: body.total ?? meta.total ?? '',
     pct: body.pct ?? meta.pct ?? '',
     currency: body.currency ?? meta.currency ?? '',
+    // undefined -> no vino en este PATCH (se conserva); null es un valor válido (nadie pagó)
+    paidPersonaId: body.paidPersonaId !== undefined ? body.paidPersonaId : (meta.paidPersonaId ?? null),
     createdAt: meta.createdAt,
     closed: !!meta.closed
   };

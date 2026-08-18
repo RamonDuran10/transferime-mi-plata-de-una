@@ -88,12 +88,17 @@ export function useLiveSync() {
   }, [state.liveSession?.sessionId, dispatch, customAlert, bailToLocal]);
 
   // ── Push automático del host (debounced) ──
+  // Solo lo que es "meta" (total/propina/moneda/compartidos) es del host y se
+  // sincroniza solo. Sus propias personas ya NO se auto-empujan acá — el host
+  // usa el mismo botón explícito "Guardar" que el invitado (ver
+  // guardarMisGastos en useBillActions), para que una tarjeta a medio llenar
+  // nunca se le aparezca de golpe al resto.
   useEffect(() => {
     if (state.mode !== 'host' || !state.liveSession) return;
     const sessionId = state.liveSession.sessionId;
-    const myPersonaIds = state.liveSession.myPersonaIds;
     const total = state.total, pct = state.pct, currency = state.currency;
-    const shared = state.shared, personas = state.personas;
+    const paidPersonaId = state.paidPersonaId;
+    const shared = state.shared;
 
     if (pushTimer.current) clearTimeout(pushTimer.current);
     pushTimer.current = setTimeout(async () => {
@@ -101,7 +106,7 @@ export function useLiveSync() {
         await apiCall(sessionId + '/meta', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ total, pct, currency })
+          body: JSON.stringify({ total, pct, currency, paidPersonaId })
         });
         for (const item of shared) {
           await apiCall(sessionId + '/shared-item/' + item.id, {
@@ -110,22 +115,13 @@ export function useLiveSync() {
             body: JSON.stringify({ name: item.name, price: item.price })
           });
         }
-        for (const pid of myPersonaIds) {
-          const p = personas.find(p => p.id === pid);
-          if (!p) continue;
-          await apiCall(sessionId + '/persona/' + pid, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: p.name, emoji: p.emoji, items: p.items, paid: p.paid })
-          });
-        }
         const { ok, data } = await apiCall(sessionId);
         if (ok && typeof data.version === 'number') lastPushedVersion.current = data.version;
       } catch { /* el próximo poll reintenta la lectura */ }
     }, PUSH_DEBOUNCE_MS);
 
     return () => { if (pushTimer.current) clearTimeout(pushTimer.current); };
-  }, [state.mode, state.liveSession, state.total, state.pct, state.currency, state.shared, state.personas]);
+  }, [state.mode, state.liveSession, state.total, state.pct, state.currency, state.paidPersonaId, state.shared]);
 
   return { showConnectionBanner, markPushedVersion };
 }

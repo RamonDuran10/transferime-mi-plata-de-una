@@ -9,12 +9,11 @@ import { T } from '../i18n/es';
 function normalizeRemoteBill(data) {
   return {
     total: data.total ? formatAmountInput(data.total, data.currency) : '', pct: data.pct || '', currency: data.currency || '',
-    created: true, personaCount: 0,
+    created: true, personaCount: 0, paidPersonaId: data.paidPersonaId ?? null,
     shared: (data.shared || []).map(i => ({ id: i.id, name: i.name || '', price: i.price || '' })),
     personas: (data.personas || []).map(p => ({
       id: p.id, name: p.name || '', emoji: p.emoji || '',
-      items: (p.items || []).map(i => ({ id: i.id, name: i.name || '', price: i.price || '' })),
-      paid: !!p.paid
+      items: (p.items || []).map(i => ({ id: i.id, name: i.name || '', price: i.price || '' }))
     }))
   };
 }
@@ -41,8 +40,8 @@ export function useAppBootstrap() {
           const sessionId = location.hash.slice(6);
           const existing = loadSessionFromStorage();
           const liveSession = (existing && existing.sessionId === sessionId)
-            ? existing
-            : { sessionId, role: 'guest', myPersonaIds: [] };
+            ? { ...existing, joined: !!existing.joined }
+            : { sessionId, role: 'guest', myPersonaIds: [], joined: false };
 
           const { ok, status, data } = await apiCall(sessionId);
           history.replaceState(null, '', location.pathname + location.search);
@@ -72,7 +71,7 @@ export function useAppBootstrap() {
               dispatch({
                 type: 'SET_MODE_AND_SESSION',
                 mode: existingSession.role,
-                liveSession: existingSession,
+                liveSession: { ...existingSession, joined: !!existingSession.joined },
                 bill: normalizeRemoteBill(data)
               });
             } else {

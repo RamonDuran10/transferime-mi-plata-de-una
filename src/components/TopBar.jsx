@@ -9,14 +9,20 @@ export default function TopBar({ onShare }) {
   const { setTotal, setCurrency, setPct, resetAll } = useBillActions();
   const { setInfoModalOpen } = useModalOpen();
 
+  // el total y la propina los fija el host una sola vez, antes de publicar —
+  // una vez en vivo quedan de solo lectura para todos (host incluido)
+  const metaLocked = !!state.liveSession;
+
   return (
     <div className="top-bar">
       <div className="top-bar-row top-bar-total">
         <label htmlFor="totalBill" title={T.topbar.totalTitle}>💰</label>
         <input
           type="text" inputMode="decimal" id="totalBill"
-          placeholder={T.topbar.totalPlaceholder} title={T.topbar.totalTitle}
+          placeholder={T.topbar.totalPlaceholder}
+          title={metaLocked ? T.topbar.metaLockedTitle : T.topbar.totalTitle}
           value={state.total}
+          readOnly={metaLocked}
           onChange={e => setTotal(e.target.value)}
           onBlur={e => setTotal(reformatAmountValue(e.target.value, state.currency))}
         />
@@ -25,6 +31,7 @@ export default function TopBar({ onShare }) {
         <select
           className="currency-select" title={T.topbar.currencyTitle}
           value={state.currency || 'CLP'}
+          disabled={metaLocked}
           onChange={async e => { await setCurrency(e.target.value); }}
         >
           {Object.entries(T.topbar.currencyOptions).map(([code, label]) => (
@@ -32,8 +39,9 @@ export default function TopBar({ onShare }) {
           ))}
         </select>
         <select
-          className="tip-select" title={T.topbar.tipLabel}
+          className="tip-select" title={metaLocked ? T.topbar.metaLockedTitle : T.topbar.tipLabel}
           value={String(parseFloat(state.pct) || 0)}
+          disabled={metaLocked}
           onChange={e => setPct(parseInt(e.target.value, 10))}
         >
           {[0, 10, 15, 20].map(v => (

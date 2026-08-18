@@ -105,6 +105,7 @@
       .top-bar-actions .btn-share { flex: 0 0 auto; }
     }
     .top-bar input:focus { box-shadow: 0 0 0 3px #FFD9A0; }
+    .top-bar input[readonly], .top-bar select:disabled { opacity: .6; background: #F1F0EA; cursor: not-allowed; }
 
     .btn-receipt {
       padding: 7px 11px; background: #EAF6FF; color: #12609E;
@@ -175,10 +176,13 @@
       pointer-events: none !important; background: #F3F0FF !important; color: #6B6684;
     }
     .persona-card.readonly-card .btn-persona-emoji,
-    .persona-card.readonly-card .btn-persona-paid,
     .persona-card.readonly-card .btn-add-item,
     .persona-card.readonly-card .btn-dup-item,
     .persona-card.readonly-card .btn-remove-item { display: none !important; }
+    /* la corona de "quien pagó" es la única excepción: no es de nadie en
+       particular (es "meta", como el total), así que sigue visible/clickeable
+       en tarjetas de otros — pero solo para quien puede tocarla (ver mode
+       !== 'guest' en PersonaCard.jsx) */
     .readonly-badge { flex: 0 0 auto; font-size: 0.85rem; opacity: .6; }
 
     /* ── Cuenta todavía no creada: formulario deshabilitado ── */
@@ -608,5 +612,26 @@
     @media (max-width: 480px) {
       .items-header.cols4, .item-row.cols4,
       .items-header.cols4s, .item-row.cols4s { grid-template-columns: 1fr 74px 20px 20px; }
+    }
+
+    /* ── Gifs flotando de fondo ── */
+    .bg-figures {
+      position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none;
+    }
+    .bg-figure {
+      position: absolute; opacity: .5;
+      filter: drop-shadow(3px 4px 0 rgba(27, 26, 46, .18));
+      animation-name: bg-figure-float;
+      animation-timing-function: ease-in-out;
+      animation-iteration-count: infinite;
+      animation-direction: alternate;
+    }
+    .bg-figure img { width: 100%; height: auto; display: block; }
+    @keyframes bg-figure-float {
+      from { transform: translateY(0) rotate(var(--rotate)); }
+      to   { transform: translateY(-14px) rotate(var(--rotate)); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .bg-figure { animation: none; transform: rotate(var(--rotate)); }
     }
   

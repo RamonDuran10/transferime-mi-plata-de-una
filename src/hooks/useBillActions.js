@@ -103,20 +103,23 @@ export function useBillActions() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           total: state.total, pct: state.pct, currency: state.currency,
-          shared: state.shared.map(i => ({ name: i.name, price: i.price }))
+          shared: state.shared.map(i => ({ id: i.id, name: i.name, price: i.price }))
         })
       });
       if (!ok) throw new Error('create_failed');
 
-      const liveSession = { sessionId: data.sessionId, role: 'host', myPersonaIds: state.personas.map(p => p.id) };
+      // el que crea la cuenta se suma como cualquier otro participante — cada
+      // quien agrega lo suyo, sin arrastrar personas locales que el servidor
+      // nunca llegó a conocer (evita el 404 al querer guardarlas después)
+      const liveSession = { sessionId: data.sessionId, role: 'host', myPersonaIds: [], joined: false };
       history.replaceState(null, '', location.pathname + location.search + '#live=' + data.sessionId);
-      dispatch({ type: 'SET_MODE_AND_SESSION', mode: 'host', liveSession });
+      dispatch({ type: 'SET_MODE_AND_SESSION', mode: 'host', liveSession, bill: { personas: [] } });
       return true;
     } catch {
       await customAlert(T.live.goLiveFailed);
       return false;
     }
-  }, [state.total, state.pct, state.currency, state.shared, state.personas, customAlert, dispatch]);
+  }, [state.total, state.pct, state.currency, state.shared, customAlert, dispatch]);
 
   const confirmCloseLive = useCallback(async () => {
     if (!state.liveSession) return false;
@@ -138,35 +141,22 @@ export function useBillActions() {
     if (state.mode === 'guest') return confirmLeaveLive();
   }, [state.mode, confirmCloseLive, confirmLeaveLive]);
 
-  // Invitado: se suma 100% local (sin avisar al servidor todavía)
-  const addPersonaGuestDraft = useCallback(() => {
-    dispatch({ type: 'ADD_PERSONA_DRAFT', emoji: randomAnimal() });
-  }, [dispatch]);
-
-  // Host: agregar gente pega al servidor de inmediato (se sincroniza solo)
-  const addPersonaHost = useCallback(async () => {
+  // Cualquier participante en vivo (host o invitado) se suma 100% local —
+  // sin avisar al servidor todavía. Recién se envía al tocar "Guardar" en su tarjeta.
+  const addPersonaLiveDraft = useCallback(async () => {
     const unnamed = state.personas.find(p => state.liveSession.myPersonaIds.includes(p.id) && (!p.name || !p.name.trim()));
     if (unnamed) {
       await customAlert(T.persona.needNameBeforeAdding);
       focusPersonaNameInput(unnamed.id);
-      return null;
+      return;
     }
-    try {
-      const { ok, data } = await apiCall(state.liveSession.sessionId + '/persona', { method: 'POST' });
-      if (!ok) throw new Error('join_failed');
-      dispatch({ type: 'ADD_PERSONA_HOST_CONFIRMED', id: data.personaId, emoji: data.emoji });
-      return data.personaId;
-    } catch {
-      await customAlert(T.live.joinFailed);
-      return null;
-    }
+    dispatch({ type: 'ADD_PERSONA_DRAFT', emoji: randomAnimal() });
   }, [state.personas, state.liveSession, customAlert, dispatch]);
 
   const handleAddPersonaClick = useCallback(() => {
-    if (state.mode === 'guest') return addPersonaGuestDraft();
-    if (state.mode === 'host') return addPersonaHost();
+    if (state.liveSession) return addPersonaLiveDraft();
     return addPersona();
-  }, [state.mode, addPersonaGuestDraft, addPersonaHost, addPersona]);
+  }, [state.liveSession, addPersonaLiveDraft, addPersona]);
 
   // Invitado: manda nombre + gastos de una sola vez (reemplaza el sync por-tecla)
   const guardarMisGastos = useCallback(async (id) => {
@@ -185,7 +175,7 @@ export function useBillActions() {
       const { ok: okPut } = await apiCall(state.liveSession.sessionId + '/persona/' + realId, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: p.name, emoji: p.emoji, items: p.items, paid: p.paid })
+        body: JSON.stringify({ name: p.name, emoji: p.emoji, items: p.items })
       });
       if (!okPut) throw new Error('save_failed');
 

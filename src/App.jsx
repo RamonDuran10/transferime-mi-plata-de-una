@@ -6,6 +6,7 @@ import { BillProvider } from './context/BillContext';
 import { LiveSyncProvider } from './context/LiveSyncContext';
 import CalculatorPage from './pages/CalculatorPage';
 import SharePage from './pages/SharePage';
+import BackgroundFigures from './components/BackgroundFigures';
 
 function AppProviders({ children }) {
   return (
@@ -26,6 +27,7 @@ function AppProviders({ children }) {
 export default function App() {
   return (
     <BrowserRouter>
+      <BackgroundFigures />
       <AppProviders>
         <Routes>
           <Route path="/" element={<CalculatorPage />} />

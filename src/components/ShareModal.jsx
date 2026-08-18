@@ -28,7 +28,7 @@ function buildExportText(state, results, total, sharedPP, ok) {
     }
   }
 
-  const payer = state.personas.find(p => p.paid);
+  const payer = state.personas.find(p => p.id === state.paidPersonaId);
   if (payer) txt += T.export.paidBy(payer.name || T.persona.removeConfirmFallbackName) + '\n';
 
   const sharedConValor = state.shared.filter(i => parseAmount(i.price, currency) > 0);

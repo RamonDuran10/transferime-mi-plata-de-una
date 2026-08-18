@@ -30,6 +30,7 @@ module.exports = async (req, res) => {
     total: meta.total || '',
     pct: meta.pct || '',
     currency: meta.currency || '',
+    paidPersonaId: meta.paidPersonaId ?? null,
     closed: !!meta.closed,
     version: Number(data.version) || 0,
     shared,

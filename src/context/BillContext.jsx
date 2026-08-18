@@ -12,8 +12,11 @@ const initialState = {
   currency: '',
   created: false,
   personaCount: 0, // contador monotónico — ids de persona en modo solo, nunca se reusan
+  paidPersonaId: null, // quién pagó — es "meta" (como total/pct/currency): lo fija una sola
+                        // vez quien crea la cuenta, así no hay que sincronizar el flag por
+                        // persona (que rompería con el modelo de "cada quien es dueño de la suya")
   shared: [], // [{id, name, price}]
-  personas: [] // [{id, name, emoji, items:[{id,name,price}], paid}]
+  personas: [] // [{id, name, emoji, items:[{id,name,price}]}]
 };
 
 function normalizeShared(list) {
@@ -23,8 +26,7 @@ function normalizeShared(list) {
 function normalizePersonas(list) {
   return (list || []).map(p => ({
     id: p.id, name: p.name || '', emoji: p.emoji || '',
-    items: (p.items || []).map(i => ({ id: i.id, name: i.name || '', price: i.price || '' })),
-    paid: !!p.paid
+    items: (p.items || []).map(i => ({ id: i.id, name: i.name || '', price: i.price || '' }))
   }));
 }
 
@@ -36,7 +38,7 @@ function shallowItemsEqual(a, b) {
 
 function shallowPersonaEqual(a, b) {
   if (a === b) return true;
-  return a.name === b.name && a.emoji === b.emoji && a.paid === b.paid && shallowItemsEqual(a.items, b.items);
+  return a.name === b.name && a.emoji === b.emoji && shallowItemsEqual(a.items, b.items);
 }
 
 function billReducer(state, action) {
@@ -60,7 +62,7 @@ function billReducer(state, action) {
       return {
         ...state,
         total: '', pct: '', currency: state.currency,
-        created: false, personaCount: 0, shared: [], personas: []
+        created: false, personaCount: 0, paidPersonaId: null, shared: [], personas: []
       };
 
     case 'SET_CURRENCY_DETECTED':
@@ -109,7 +111,7 @@ function billReducer(state, action) {
       return {
         ...state,
         personaCount: nextId,
-        personas: [...state.personas, { id: nextId, name: '', emoji: action.emoji, items: [{ id: uid(), name: '', price: '' }], paid: false }]
+        personas: [...state.personas, { id: nextId, name: '', emoji: action.emoji, items: [{ id: uid(), name: '', price: '' }] }]
       };
     }
 
@@ -118,9 +120,10 @@ function billReducer(state, action) {
 
     case 'REMOVE_PERSONA': {
       const personas = state.personas.filter(p => p.id !== action.id);
-      if (!state.liveSession) return { ...state, personas };
+      const paidPersonaId = state.paidPersonaId === action.id ? null : state.paidPersonaId;
+      if (!state.liveSession) return { ...state, personas, paidPersonaId };
       return {
-        ...state, personas,
+        ...state, personas, paidPersonaId,
         liveSession: { ...state.liveSession, myPersonaIds: state.liveSession.myPersonaIds.filter(pid => pid !== action.id) }
       };
     }
@@ -128,10 +131,8 @@ function billReducer(state, action) {
     case 'UPDATE_PERSONA_NAME':
       return { ...state, personas: state.personas.map(p => p.id === action.id ? { ...p, name: action.value } : p) };
 
-    case 'SET_PAGADOR': {
-      const wasPaid = !!state.personas.find(p => p.id === action.id)?.paid;
-      return { ...state, personas: state.personas.map(p => ({ ...p, paid: p.id === action.id && !wasPaid })) };
-    }
+    case 'SET_PAGADOR':
+      return { ...state, paidPersonaId: state.paidPersonaId === action.id ? null : action.id };
 
     case 'ADD_ITEM':
       return {
@@ -171,22 +172,16 @@ function billReducer(state, action) {
       };
 
     case 'ADD_PERSONA_DRAFT': {
-      if (state.mode !== 'guest' || !state.liveSession) return state;
-      if (state.liveSession.myPersonaIds.length > 0) return state; // un invitado solo se suma una vez
+      // cada participante (invitado u host) se suma una sola vez por dispositivo,
+      // y queda 100% local hasta que toque "Guardar" — recién ahí se avisa al servidor
+      if (!state.liveSession || state.liveSession.joined) return state;
       const draftId = -(Date.now() + Math.random());
       return {
         ...state,
-        personas: [...state.personas, { id: draftId, name: '', emoji: action.emoji, items: [{ id: uid(), name: '', price: '' }], paid: false }],
-        liveSession: { ...state.liveSession, myPersonaIds: [...state.liveSession.myPersonaIds, draftId] }
+        personas: [...state.personas, { id: draftId, name: '', emoji: action.emoji, items: [{ id: uid(), name: '', price: '' }] }],
+        liveSession: { ...state.liveSession, myPersonaIds: [...state.liveSession.myPersonaIds, draftId], joined: true }
       };
     }
-
-    case 'ADD_PERSONA_HOST_CONFIRMED':
-      return {
-        ...state,
-        personas: [...state.personas, { id: action.id, name: '', emoji: action.emoji, items: [{ id: uid(), name: '', price: '' }], paid: false }],
-        liveSession: { ...state.liveSession, myPersonaIds: [...state.liveSession.myPersonaIds, action.id] }
-      };
 
     case 'PROMOTE_DRAFT': {
       const { draftId, realId } = action;
@@ -225,6 +220,7 @@ function billReducer(state, action) {
       const newTotal = iOwnMeta ? state.total : (remote.total || '');
       const newPct = iOwnMeta ? state.pct : (remote.pct || '');
       const newCurrency = iOwnMeta ? state.currency : (remote.currency || '');
+      const newPaidPersonaId = iOwnMeta ? state.paidPersonaId : (remote.paidPersonaId ?? null);
 
       const personasChanged =
         newPersonas.length !== state.personas.length ||
@@ -233,14 +229,15 @@ function billReducer(state, action) {
         (newShared.length !== state.shared.length || !shallowItemsEqual(newShared, state.shared));
 
       if (!personasChanged && !sharedChanged &&
-          newTotal === state.total && newPct === state.pct && newCurrency === state.currency) {
+          newTotal === state.total && newPct === state.pct && newCurrency === state.currency &&
+          newPaidPersonaId === state.paidPersonaId) {
         return state; // nada relevante cambió -> misma referencia, cero re-render
       }
 
       return {
         ...state,
         created: true,
-        total: newTotal, pct: newPct, currency: newCurrency,
+        total: newTotal, pct: newPct, currency: newCurrency, paidPersonaId: newPaidPersonaId,
         shared: sharedChanged ? newShared : state.shared,
         personas: newPersonas
       };
@@ -263,10 +260,11 @@ export function BillProvider({ children }) {
     try {
       localStorage.setItem(LS_KEY, JSON.stringify({
         total: state.total, pct: state.pct, currency: state.currency, created: state.created,
-        personaCount: state.personaCount, shared: state.shared, personas: state.personas
+        personaCount: state.personaCount, paidPersonaId: state.paidPersonaId,
+        shared: state.shared, personas: state.personas
       }));
     } catch { /* localStorage no disponible */ }
-  }, [state.total, state.pct, state.currency, state.created, state.personaCount, state.shared, state.personas]);
+  }, [state.total, state.pct, state.currency, state.created, state.personaCount, state.paidPersonaId, state.shared, state.personas]);
 
   useEffect(() => {
     try {

@@ -13,7 +13,7 @@ module.exports = async (req, res) => {
 
   const newId = await redis.hincrby(key, 'personaSeq', 1);
   const emoji = ANIMALS[Math.floor(Math.random() * ANIMALS.length)];
-  const persona = { id: newId, name: '', emoji, items: [], paid: false };
+  const persona = { id: newId, name: '', emoji, items: [] };
 
   await redis.hset(key, { [`persona:${newId}`]: JSON.stringify(persona) });
   await bumpVersion(id);

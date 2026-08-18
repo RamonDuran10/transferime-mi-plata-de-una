@@ -20,13 +20,16 @@ module.exports = async (req, res) => {
 
   const key = sessionKey(id);
   const fields = {
-    meta: JSON.stringify({ total, pct, currency, createdAt: Date.now(), closed: false }),
+    meta: JSON.stringify({ total, pct, currency, paidPersonaId: null, createdAt: Date.now(), closed: false }),
     personaSeq: 0,
     sharedSeq: shared.length,
     version: 1
   };
-  shared.forEach((item, idx) => {
-    const itemId = idx + 1;
+  shared.forEach((item) => {
+    // se preserva el id que ya trae el cliente (en vez de reasignar uno nuevo
+    // acá) — si no, el próximo PUT desde el host usa el id viejo y crea una
+    // entrada duplicada en vez de actualizar esta misma
+    const itemId = item.id;
     fields[`shared:${itemId}`] = JSON.stringify({ id: itemId, name: item.name || '', price: item.price || '' });
   });
 

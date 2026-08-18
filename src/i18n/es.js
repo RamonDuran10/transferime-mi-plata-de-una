@@ -34,6 +34,7 @@ export const T = {
     createAccount: '✨ Crear cuenta',
     createAccountTitle: 'Arranca aquí: activa el formulario para sumar gente y anotar gastos',
     confirmReset: '¿Empezar de cero? Se borra todo lo que llevamos 🗑️',
+    metaLockedTitle: '🔒 El total y la propina se fijan al publicar la cuenta — ya no se pueden cambiar',
     confirmCurrencyChange: 'Cambiar de moneda borra los montos que ya escribiste (no se convierten automáticamente, para no calcular mal). ¿Continuar?'
   },
 
@@ -118,11 +119,12 @@ export const T = {
     buttonTitle: '¿Cómo funciona?',
     title: '🤔 ¿Cómo se juega esto?',
     steps: [
-      '✨ Toca "Crear cuenta" (arriba) para activar el formulario.',
-      '💰 Anota el total de la boleta, elige la moneda y métele propina si cae.',
-      '🐵 Suma a la gente con "+ Sumar al grupo" y anota lo que pidió cada uno (o algo pa\' compartir entre todos, arriba).',
-      '🔴 Toca "Poner esta cuenta en vivo" y publícala — así el resto escanea el QR y agrega lo que consumió sin que tú tengas que anotarlo.',
-      '✅ Cuando el veredicto cuadre, copia el detalle y mándalo al grupo — pa\' que te paguen al tiro jaja.'
+      '✨ Toca "Crear cuenta" para activar el formulario.',
+      '💰 Anota el total de la boleta, elige la moneda, métele propina si cae, y agrega arriba lo que se pidió para compartir entre todos (ej. las papas fritas).',
+      '🔴 Toca "Poner esta cuenta en vivo" y publícala — el total, la propina y lo compartido quedan fijos desde acá, ya no se pueden cambiar.',
+      '🐵 Ahora cualquiera con el link o el QR toca "Sumarme", anota lo que pidió, y le da "Guardar" — cada quien carga lo suyo, sin pisarse entre ellos.',
+      '👑 Cuando la cuenta cuadre, marca quién pagó pa\' que le quede su corona.',
+      '📤 Toca "Publicar/compartir detalle", copia el resumen y mándalo al grupo — pa\' que te paguen al tiro jaja.'
     ]
   },
 
@@ -143,7 +145,7 @@ export const T = {
     resumePrompt: 'Tenías una cuenta en vivo abierta — ¿seguimos con esa o partimos de cero?',
     resumeContinue: 'Seguir con esa',
     resumeNew: 'Cuenta nueva',
-    saveGuestButton: '💾 Guardar mis gastos',
+    saveButton: '💾 Cargar mi consumo',
     savingGuest: 'Guardando...',
     savedToast: '✅ ¡Guardado! Ya lo ven los demás',
     saveFailed: 'No se pudo guardar — inténtalo de nuevo',

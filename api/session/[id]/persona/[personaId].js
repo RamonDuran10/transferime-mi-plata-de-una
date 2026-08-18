@@ -22,8 +22,7 @@ module.exports = async (req, res) => {
       id: Number(personaId),
       name: body.name || '',
       emoji: body.emoji || '🐵',
-      items: Array.isArray(body.items) ? body.items : [],
-      paid: !!body.paid
+      items: Array.isArray(body.items) ? body.items : []
     };
     await redis.hset(key, { [`persona:${personaId}`]: JSON.stringify(persona) });
   }

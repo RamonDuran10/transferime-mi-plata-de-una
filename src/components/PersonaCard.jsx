@@ -24,7 +24,7 @@ const ItemRow = memo(function ItemRow({ item, personaId, currency, isMine, onUpd
 });
 
 function PersonaCard({
-  persona, isMine, mode, shared, personasCount, pct, currency, amount,
+  persona, isMine, isPayer, mode, shared, personasCount, pct, currency, amount,
   actions
 }) {
   const { changePersonaEmoji, updatePersonaName, setPagador, removePersona, addItem, dupItem, removeItem, updateItem, guardarMisGastos } = actions;
@@ -36,7 +36,7 @@ function PersonaCard({
   const gPct = parseFloat(pct) || 0;
 
   return (
-    <div className={'persona-card' + (persona.paid ? ' is-payer' : '') + (isMine ? '' : ' readonly-card')}>
+    <div className={'persona-card' + (isPayer ? ' is-payer' : '') + (isMine ? '' : ' readonly-card')}>
       <div className="persona-header">
         <button
           className="btn-persona-emoji" onClick={() => changePersonaEmoji(persona.id)}
@@ -50,13 +50,15 @@ function PersonaCard({
           onChange={e => updatePersonaName(persona.id, e.target.value)}
         />
         {!isMine && <span className="readonly-badge" title={T.persona.readonlyTitle}>🔒</span>}
-        <button
-          className={'btn-persona-paid' + (persona.paid ? ' is-paid' : '')}
-          onClick={() => setPagador(persona.id)}
-          title={persona.paid ? T.persona.unmarkPaidTitle : T.persona.markPaidTitle}
-        >
-          👑
-        </button>
+        {mode !== 'guest' && (
+          <button
+            className={'btn-persona-paid' + (isPayer ? ' is-paid' : '')}
+            onClick={() => setPagador(persona.id)}
+            title={isPayer ? T.persona.unmarkPaidTitle : T.persona.markPaidTitle}
+          >
+            👑
+          </button>
+        )}
         <button className="btn-remove-persona" onClick={() => removePersona(persona.id)} title={T.persona.removeTitle}>✕</button>
       </div>
 
@@ -94,14 +96,14 @@ function PersonaCard({
         <button className="btn-add-item" onClick={() => addItem(persona.id)} title={T.persona.addItemTitle}>
           {T.persona.addItem}
         </button>
-        {persona.paid && <span className="paid-badge">{T.persona.paidBadge}</span>}
+        {isPayer && <span className="paid-badge">{T.persona.paidBadge}</span>}
         <div className="persona-total" id={'pt-' + persona.id}>{fmt(amount, currency)}</div>
       </div>
 
-      {isMine && mode === 'guest' && (
+      {isMine && mode !== 'solo' && (
         <div className="persona-save-row">
           <button className="btn-save-guest" onClick={() => guardarMisGastos(persona.id)}>
-            {T.live.saveGuestButton}
+            {T.live.saveButton}
           </button>
         </div>
       )}
