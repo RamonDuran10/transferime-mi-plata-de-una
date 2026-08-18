@@ -85,6 +85,15 @@
     }
     .btn-share-friends:hover { background: #5A4BD6; }
     .btn-share-friends:active { transform: translateY(2px); box-shadow: none; }
+    .btn-crear-cuenta {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-family: 'Baloo 2', cursive; font-weight: 700; font-size: 0.78rem;
+      background: #12B886; color: #fff; border: 2px solid #1B1A2E; border-radius: 999px;
+      padding: 4px 12px; box-shadow: 2px 2px 0 #1B1A2E; cursor: pointer;
+      transition: all .1s;
+    }
+    .btn-crear-cuenta:hover { background: #0ca678; }
+    .btn-crear-cuenta:active { transform: translateY(2px); box-shadow: none; }
 
     .main-card {
       width: 80%;
@@ -155,6 +164,9 @@
       background: #FFE3E3; border: 2px solid #FF5D5D; border-radius: 12px;
       padding: 7px 10px; margin-bottom: 10px; font-size: 0.78rem; font-weight: 700; color: #1B1A2E;
     }
+    .live-indicator #liveIndicatorText {
+      flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
     .btn-leave-live {
       flex: 0 0 auto; background: #fff; border: 2px solid #1B1A2E; border-radius: 8px;
       padding: 3px 9px; font-size: 0.7rem; font-weight: 700; cursor: pointer; transition: background .15s;
@@ -168,6 +180,16 @@
     .live-mode .btn-reset { display: none !important; }
     .persona-card.pending { opacity: .55; }
     .persona-card.pending .persona-header { justify-content: center; padding: 14px 10px; }
+
+    /* ── Cuenta todavía no creada: formulario deshabilitado ── */
+    .not-created .top-bar input,
+    .not-created .top-bar select { pointer-events: none !important; opacity: .5; }
+    .not-created .top-bar-actions .btn-share,
+    .not-created .top-bar-actions .btn-reset { display: none !important; }
+    .not-created .shared-card,
+    .not-created .personas-list,
+    .not-created .btn-add-persona,
+    .not-created .summary { opacity: .35; pointer-events: none; filter: grayscale(.4); }
 
     .btn-share {
       padding: 7px 12px; background: #6C5CE7; color: #fff;
@@ -405,7 +427,23 @@
     .btn-copy:active { transform: translateY(3px); box-shadow: none; }
     .btn-copy.copied { background: #12B886; }
 
-    .modal-live-section { margin-top: 14px; padding-top: 14px; border-top: 2px dashed #E4E0F0; }
+    /* ── Detalle colapsable (no ocupa espacio hasta que se abre) ── */
+    .modal-detail-toggle {
+      margin-top: 14px; padding-top: 14px; border-top: 2px dashed #E4E0F0;
+    }
+    .modal-detail-toggle summary {
+      cursor: pointer; list-style: none; display: flex; align-items: center; gap: 6px;
+      font-family: 'Baloo 2', cursive; font-weight: 700; font-size: 0.85rem; color: #1B1A2E;
+      padding: 2px 0;
+    }
+    .modal-detail-toggle summary::-webkit-details-marker { display: none; }
+    .modal-detail-toggle summary::before {
+      content: '▸'; color: #6C5CE7; font-size: 0.8rem; transition: transform .15s;
+    }
+    .modal-detail-toggle[open] summary::before { transform: rotate(90deg); }
+    .modal-detail-toggle textarea { margin-top: 10px; }
+
+    .modal-live-section { margin-top: 0; }
     .modal-live-section label {
       display: block; font-size: 0.75rem; font-weight: 700; color: #6B6684; margin-bottom: 6px;
     }
@@ -417,11 +455,25 @@
     }
     .btn-go-live:hover { background: #e84f4f; }
     .btn-go-live:active { transform: translateY(3px); box-shadow: none; }
-    .modal-live-hint { margin-top: 6px; font-size: 0.72rem; color: #6B6684; text-align: center; }
-    .modal-live-qr {
-      display: block; width: 160px; height: 160px; margin: 4px auto 10px;
-      border: 2.5px solid #1B1A2E; border-radius: 12px; background: #fff;
+    .btn-go-live.loading {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      opacity: .85; cursor: not-allowed;
     }
+    .btn-go-live.loading::before {
+      content: ''; width: 14px; height: 14px; border-radius: 50%; flex: 0 0 auto;
+      border: 2px solid rgba(255,255,255,.4); border-top-color: #fff;
+      animation: btn-spin .7s linear infinite;
+    }
+    @keyframes btn-spin { to { transform: rotate(360deg); } }
+    .modal-live-hint { margin-top: 6px; font-size: 0.72rem; color: #6B6684; text-align: center; }
+    /* mismo "marco" de tarjeta que usa el QR de Share.html, para que se vea igual */
+    .qr-frame {
+      border: 2.5px solid #1B1A2E; border-radius: 16px;
+      padding: 10px; background: #FFFDF7;
+      box-shadow: 3px 3px 0 #1B1A2E;
+      display: block; width: fit-content; margin: 4px auto 14px;
+    }
+    .modal-live-qr { display: block; width: 160px; height: 160px; }
     .modal-relay-row { display: flex; gap: 6px; }
     .modal-relay-row input {
       flex: 1; min-width: 0; padding: 8px 10px; border: 2px solid #1B1A2E; border-radius: 8px;
@@ -540,6 +592,7 @@
 <h1><span class="emoji"></span> <span id="headerTitleText"></span></h1>
 <div class="usage-row">
   <span id="usageCounter" class="usage-badge"></span>
+  <button class="btn-crear-cuenta" id="btnCrearCuenta" onclick="crearCuenta()" style="display:none"></button>
   <a id="shareFriendsBtn" class="btn-share-friends" href="Share.html"></a>
 </div>
 
@@ -638,11 +691,9 @@
   <div class="modal">
     <div class="modal-handle"></div>
     <div class="modal-header">
-      <h3>📋 Detalle para compartir</h3>
+      <h3 id="modalMainTitle">📋 Detalle para compartir</h3>
       <button class="modal-close" onclick="closeModal()">✕</button>
     </div>
-    <textarea id="modalText" readonly></textarea>
-    <button class="btn-copy" id="btnCopy" onclick="copiarDetalle()">📋 Copiar</button>
 
     <div class="modal-live-section" id="modalLiveSection">
       <div id="modalLiveSetup">
@@ -650,7 +701,9 @@
         <p class="modal-live-hint" id="modalLiveHint"></p>
       </div>
       <div id="modalLiveActive" style="display:none">
-        <img class="modal-live-qr" id="modalLiveQr" alt="" onerror="this.style.display='none'" />
+        <div class="qr-frame">
+          <img class="modal-live-qr" id="modalLiveQr" alt="" onerror="this.parentElement.style.display='none'" />
+        </div>
         <label id="modalLiveLabel" for="modalLiveLink"></label>
         <div class="modal-relay-row">
           <input type="text" id="modalLiveLink" readonly />
@@ -665,6 +718,12 @@
         <div class="modal-done-subtitle" id="modalDoneSubtitle"></div>
       </div>
     </div>
+
+    <details class="modal-detail-toggle" id="modalDetailToggle">
+      <summary id="modalDetailSummary"></summary>
+      <textarea id="modalText" readonly></textarea>
+      <button class="btn-copy" id="btnCopy" onclick="copiarDetalle()"></button>
+    </details>
   </div>
 </div>
 
@@ -706,7 +765,8 @@ let S = {
   currency:       '',   // CLP, USD, ARS, EUR — se autodetecta si viene vacío
   personaCount:   0,
   shared:         [],   // [{id, name, price}]
-  personas:       []    // [{id, name, items:[{id, name, price}]}]
+  personas:       [],   // [{id, name, items:[{id, name, price}]}]
+  created:        false // se activa recién al tocar "Crear cuenta"
 };
 
 // ─────────────────────────────────────────────────────
@@ -722,7 +782,11 @@ function loadFromLocalStorage() {
     const raw = localStorage.getItem(LS_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (parsed && Array.isArray(parsed.personas)) S = parsed;
+      if (parsed && Array.isArray(parsed.personas)) {
+        S = parsed;
+        // compatibilidad con cuentas guardadas antes de que existiera este gate
+        if (typeof S.created !== 'boolean') S.created = S.personas.length > 0;
+      }
     }
   } catch (e) {}
 }
@@ -746,7 +810,7 @@ async function load() {
       MODE = existing.role;
       S = {
         total: data.total || '', pct: data.pct || '', currency: data.currency || '',
-        personaCount: 0,
+        personaCount: 0, created: true,
         shared: (data.shared || []).map(i => ({ id: i.id, name: i.name || '', price: i.price || '' })),
         personas: (data.personas || []).map(p => ({ id: p.id, name: p.name || '', emoji: p.emoji || '', items: (p.items || []).map(i => ({ id: i.id, name: i.name || '', price: i.price || '' })), paid: !!p.paid }))
       };
@@ -836,6 +900,7 @@ async function exportarArchivo() {
   document.getElementById('modalText').value = txt;
   document.getElementById('btnCopy').textContent = T.modal.copy;
   document.getElementById('btnCopy').classList.remove('copied');
+  document.getElementById('modalDetailToggle').open = ok; // se abre solo cuando ya está completa
   document.getElementById('modalOverlay').classList.add('show');
 
   renderLiveModalSection(ok);
@@ -953,13 +1018,29 @@ function bumpUsageCounter() {
 async function resetAll() {
   if (!await customConfirm(T.topbar.confirmReset)) return;
   const keepCurrency = S.currency;
-  S = { total: '', pct: '', currency: keepCurrency, personaCount: 0, shared: [], personas: [] };
+  S = { total: '', pct: '', currency: keepCurrency, personaCount: 0, shared: [], personas: [], created: false };
   save();
   document.getElementById('totalBill').value = '';
   updateTipSelect();
   updateCurrencySelect();
   renderShared();
-  await addPersona(); // igual que el arranque inicial: siempre parte con 1 persona
+  renderPersonas();
+  applyCreatedState(); // vuelve a pedir "Crear cuenta", igual que el arranque inicial
+}
+
+function applyCreatedState() {
+  const card = document.querySelector('.main-card');
+  const btn = document.getElementById('btnCrearCuenta');
+  const created = !!S.created;
+  if (card) card.classList.toggle('not-created', !created && MODE === 'solo');
+  if (btn) btn.style.display = (created || MODE !== 'solo') ? 'none' : 'inline-flex';
+}
+
+function crearCuenta() {
+  S.created = true;
+  save();
+  applyCreatedState();
+  renderAll(); // arranca sin personas — recién con "+ Sumar al grupo" se agrega la primera
 }
 
 function showToast(msg) {
@@ -1594,7 +1675,8 @@ async function apiCall(path, opts) {
 // ── Crear sesión (host) ──
 async function goLive() {
   const btn = document.getElementById('btnGoLive');
-  if (btn) btn.disabled = true;
+  const originalText = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.classList.add('loading'); btn.textContent = T.live.goLiveLoading; }
   try {
     const { ok, data } = await apiCall('create', {
       method: 'POST',
@@ -1616,7 +1698,7 @@ async function goLive() {
   } catch (e) {
     await customAlert(T.live.goLiveFailed);
   } finally {
-    if (btn) btn.disabled = false;
+    if (btn) { btn.disabled = false; btn.classList.remove('loading'); btn.textContent = originalText; }
   }
 }
 
@@ -1625,9 +1707,10 @@ function updateLiveModalLink() {
   const joinUrl = location.origin + location.pathname + '#live=' + liveSession.sessionId;
   const qr = document.getElementById('modalLiveQr');
   if (qr) {
-    qr.style.display = '';
+    qr.parentElement.style.display = ''; // por si un intento anterior lo había ocultado (onerror)
     qr.alt = T.live.qrAlt;
-    qr.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(joinUrl)}`;
+    // mismos colores del marco (.qr-frame) que usa el QR de Share.html, para que se vea parejo
+    qr.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&color=1B1A2E&bgcolor=FFFDF7&data=${encodeURIComponent(joinUrl)}`;
   }
   const linkInput = document.getElementById('modalLiveLink');
   if (linkInput) linkInput.value = joinUrl;
@@ -1695,7 +1778,10 @@ function updateLiveIndicator() {
   if (card) {
     card.classList.toggle('guest-mode', MODE === 'guest');
     card.classList.toggle('live-mode', MODE !== 'solo');
+    if (MODE !== 'solo') card.classList.remove('not-created'); // en vivo ya está "creada" por definición
   }
+  const crearCuentaBtn = document.getElementById('btnCrearCuenta');
+  if (crearCuentaBtn && MODE !== 'solo') crearCuentaBtn.style.display = 'none';
 
   const addBtn = document.querySelector('.btn-add-persona');
   if (addBtn) {
@@ -1822,6 +1908,7 @@ function mergeRemote(remote) {
   S.total = remote.total || '';
   S.pct = remote.pct || '';
   S.currency = remote.currency || '';
+  S.created = true;
   S.shared = (remote.shared || []).map(i => ({ id: i.id, name: i.name || '', price: i.price || '' }));
   S.personas = (remote.personas || []).map(p => ({
     id: p.id, name: p.name || '', emoji: p.emoji || '', items: (p.items || []).map(i => ({ id: i.id, name: i.name || '', price: i.price || '' })), paid: !!p.paid
@@ -1914,7 +2001,7 @@ async function bootstrapGuestFromHash() {
   saveSession();
   S = {
     total: data.total || '', pct: data.pct || '', currency: data.currency || '',
-    personaCount: 0,
+    personaCount: 0, created: true,
     shared: (data.shared || []).map(i => ({ id: i.id, name: i.name || '', price: i.price || '' })),
     personas: (data.personas || []).map(p => ({ id: p.id, name: p.name || '', emoji: p.emoji || '', items: (p.items || []).map(i => ({ id: i.id, name: i.name || '', price: i.price || '' })), paid: !!p.paid }))
   };
@@ -1967,6 +2054,9 @@ function applyStrings() {
   const shareFriendsBtn = document.getElementById('shareFriendsBtn');
   if (shareFriendsBtn) { shareFriendsBtn.textContent = T.topbar.shareFriends; shareFriendsBtn.title = T.topbar.shareFriendsTitle; }
 
+  const crearCuentaBtn = document.getElementById('btnCrearCuenta');
+  if (crearCuentaBtn) { crearCuentaBtn.textContent = T.topbar.createAccount; crearCuentaBtn.title = T.topbar.createAccountTitle; }
+
   // Placeholder invisible con un largo parecido al real, para reservar el
   // espacio del badge antes de que responda el fetch del contador (evita CLS).
   const usageBox = document.getElementById('usageCounter');
@@ -1999,6 +2089,9 @@ function applyStrings() {
 
   const copyBtn = document.getElementById('btnCopy');
   if (copyBtn) copyBtn.textContent = T.modal.copy;
+
+  const detailSummary = document.getElementById('modalDetailSummary');
+  if (detailSummary) detailSummary.textContent = T.modal.detailSummary;
 
   const btnGoLive = document.getElementById('btnGoLive');
   if (btnGoLive) btnGoLive.textContent = T.live.goLiveButton;
@@ -2041,12 +2134,8 @@ function applyStrings() {
   if (S.total) document.getElementById('totalBill').value = formatAmountInput(S.total);
   updateTipSelect();
 
-  if (S.personas.length === 0 && MODE === 'solo') {
-    addPersona();   // siempre arranca con al menos una persona (solo en modo solo)
-  } else {
-    renderAll();
-  }
-
+  renderAll();
+  applyCreatedState();
   updateLiveIndicator();
   initInstallBanner();
 })();

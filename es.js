@@ -14,7 +14,7 @@ const T = {
 
   usageCounter: {
     emoji: '🤝',
-    suffix: n => `${n.toLocaleString('es-CL')} amistades salvadas`
+    suffix: n => `${n.toLocaleString('es-CL')} reuniones sin problemas`
   },
 
   topbar: {
@@ -25,11 +25,13 @@ const T = {
     tipLabel: 'Propina',
     tipNone: 'nada',
     tipOptionTitle: pct => pct === 0 ? 'Sin propina' : `${pct}% de propina para los chiquillos`,
-    share: '📤 ¡Mandar la cuenta!',
+    share: '📤 ¡Publicar/compartir detalle!',
     shareTitle: 'Manda el resumen al grupo para ponerse al día',
     resetTitle: 'Borrar todo',
     shareFriends: '🔗 Compartir la app',
     shareFriendsTitle: 'Saca el QR o el link para los demás',
+    createAccount: '✨ Crear cuenta',
+    createAccountTitle: 'Arranca aquí: activa el formulario para sumar gente y anotar gastos',
     confirmReset: '¿Empezar de cero? Se borra todo lo que llevamos 🗑️',
     confirmCurrencyChange: 'Cambiar de moneda borra los montos que ya escribiste (no se convierten automáticamente, para no calcular mal). ¿Continuar?'
   },
@@ -105,6 +107,7 @@ const T = {
     closeTitle: 'Cerrar',
     copy: '📋 Copiar',
     copied: '✓ ¡Copiado!',
+    detailSummary: '📋 Ver detalle del reparto',
     doneTitle: '🎉 ¡Listo, quedó la cuenta lista!',
     doneSubtitle: 'Hicimos lo que pudimos — si aun así no te pagan, ya no es cosa nuestra 😂🤷'
   },
@@ -113,10 +116,11 @@ const T = {
     buttonTitle: '¿Cómo funciona?',
     title: '🤔 ¿Cómo se juega esto?',
     steps: [
-      '💰 Anota el total de la boleta y elige la moneda.',
-      '🐵 Suma a la gente y anota lo que pidió cada uno (o algo pa\' compartir entre todos, arriba).',
-      '💸 Métele propina si cae.',
-      '⚖️ Cuando el veredicto cuadre, mándala al grupo — si falta gente y no quieres sacar la cuenta tu, comparte el link pa\' que sigan sumando lo suyo.'
+      '✨ Toca "Crear cuenta" (arriba) para activar el formulario.',
+      '💰 Anota el total de la boleta, elige la moneda y métele propina si cae.',
+      '🐵 Suma a la gente con "+ Sumar al grupo" y anota lo que pidió cada uno (o algo pa\' compartir entre todos, arriba).',
+      '🔴 Toca "Poner esta cuenta en vivo" y publícala — así el resto escanea el QR y agrega lo que consumió sin que tú tengas que anotarlo.',
+      '✅ Cuando el veredicto cuadre, copia el detalle y mándalo al grupo — pa\' que te paguen al tiro jaja.'
     ]
   },
 
@@ -135,6 +139,7 @@ const T = {
 
   live: {
     goLiveButton: '🔴 Poner esta cuenta en vivo',
+    goLiveLoading: 'Publicando...',
     goLiveHint: 'Vamos a compartir esta cuenta en el momento — cualquiera con el link o el QR puede sumar lo suyo altiro',
     goLiveFailed: 'No se pudo poner la cuenta en vivo — inténtalo de nuevo',
     qrAlt: 'Código QR para unirse a esta cuenta en vivo',
@@ -144,8 +149,8 @@ const T = {
     participants: n => `${n} persona${n === 1 ? '' : 's'} conectada${n === 1 ? '' : 's'}`,
     closeSessionButton: '🔒 Cerrar sesión',
     confirmCloseSession: '¿Seguro que quieres cerrar esta sesión en vivo? Nadie más va a poder sumar cosas',
-    hostBanner: '🔴 En vivo — comparte el QR para que sumen lo suyo',
-    bannerLive: name => `🔴 En vivo — cuenta de ${name || 'quien la creó'}`,
+    hostBanner: '🔴 Cuenta publicada — comparte el QR para que sumen lo suyo',
+    bannerLive: name => `🔴 Cuenta publicada — cuenta de ${name || 'quien la creó'}`,
     joinButton: '➕ Sumarme',
     joining: 'Uniéndote...',
     joinFailed: 'No se pudo sumar a la sesión — inténtalo de nuevo',
