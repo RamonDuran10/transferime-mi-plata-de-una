@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { fmt, formatAmountInput, parseAmount } from '../lib/currency';
+import { sharedItemParticipants } from '../lib/bill';
 import { T } from '../i18n/es';
 
 const ItemRow = memo(function ItemRow({ item, personaId, currency, isMine, onUpdate, onDup, onRemove }) {
@@ -24,7 +25,7 @@ const ItemRow = memo(function ItemRow({ item, personaId, currency, isMine, onUpd
 });
 
 function PersonaCard({
-  persona, isMine, isPayer, mode, shared, personasCount, pct, currency, amount,
+  persona, isMine, isPayer, mode, shared, personaIds, pct, currency, amount,
   actions
 }) {
   const { changePersonaEmoji, updatePersonaName, setPagador, removePersona, addItem, dupItem, removeItem, updateItem, guardarMisGastos } = actions;
@@ -32,7 +33,12 @@ function PersonaCard({
   const nickPhs = T.persona.nicknamePlaceholders;
   const ph = nickPhs[Math.abs(Math.floor(persona.id - 1)) % nickPhs.length];
 
-  const sharedConValor = shared.filter(i => parseAmount(i.price, currency) > 0);
+  // solo los ítems compartidos que esta persona realmente pidió, con el
+  // divisor real de participantes (no el total de gente en la cuenta)
+  const myShared = shared
+    .filter(i => parseAmount(i.price, currency) > 0)
+    .map(i => ({ item: i, participants: sharedItemParticipants(i, personaIds) }))
+    .filter(({ participants }) => participants.includes(persona.id));
   const gPct = parseFloat(pct) || 0;
 
   return (
@@ -76,15 +82,15 @@ function PersonaCard({
         ))}
       </div>
 
-      {sharedConValor.length > 0 && personasCount > 0 && (
+      {myShared.length > 0 && (
         <div className="shared-portion">
-          {sharedConValor.map(item => {
+          {myShared.map(({ item, participants }) => {
             const pr = parseAmount(item.price, currency) || 0;
-            const total = (pr + pr * gPct / 100) / personasCount;
+            const total = (pr + pr * gPct / 100) / participants.length;
             const label = T.persona.sharedPortion(item.name);
             return (
               <div className="shared-portion-row" key={item.id}>
-                <span className="shared-portion-name">{label} (÷{personasCount})</span>
+                <span className="shared-portion-name">{label} (÷{participants.length})</span>
                 <span className="shared-portion-amt">{fmt(total, currency)}</span>
               </div>
             );

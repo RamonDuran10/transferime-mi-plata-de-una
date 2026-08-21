@@ -30,7 +30,10 @@ module.exports = async (req, res) => {
     // acá) — si no, el próximo PUT desde el host usa el id viejo y crea una
     // entrada duplicada en vez de actualizar esta misma
     const itemId = item.id;
-    fields[`shared:${itemId}`] = JSON.stringify({ id: itemId, name: item.name || '', price: item.price || '' });
+    fields[`shared:${itemId}`] = JSON.stringify({
+      id: itemId, name: item.name || '', price: item.price || '',
+      participantIds: Array.isArray(item.participantIds) ? item.participantIds : []
+    });
   });
 
   await redis.hset(key, fields);

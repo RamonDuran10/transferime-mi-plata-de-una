@@ -3,7 +3,7 @@ import { useBillState } from '../context/BillContext';
 import { useModalOpen } from '../context/ModalOpenContext';
 import { useBillActions } from '../hooks/useBillActions';
 import { useAppBootstrap } from '../hooks/useAppBootstrap';
-import { computeResults, sharedTotalConPct } from '../lib/bill';
+import { computeResults } from '../lib/bill';
 import { parseAmount } from '../lib/currency';
 import PageLoader from '../components/PageLoader';
 import UsageRow from '../components/UsageRow';
@@ -30,10 +30,7 @@ export default function CalculatorPage() {
   useEffect(() => { document.title = T.pageTitle; }, []);
 
   const total = parseAmount(state.total, state.currency) || 0;
-  const n = state.personas.length;
-  const sharedAmt = sharedTotalConPct(state);
-  const sharedPP = n > 0 ? sharedAmt / n : 0;
-  const results = useMemo(() => computeResults(state, total, sharedPP), [state, total, sharedPP]);
+  const results = useMemo(() => computeResults(state), [state]);
 
   const notCreated = !state.created && state.mode === 'solo';
 
@@ -58,7 +55,7 @@ export default function CalculatorPage() {
         <TopBar onShare={() => setShareModalOpen(true)} />
         <SharedCard />
         <PersonasList results={results} />
-        <Summary results={results} total={total} sharedPP={sharedPP} sharedAmt={sharedAmt} />
+        <Summary results={results} total={total} />
       </div>
 
       {showClearAll && (

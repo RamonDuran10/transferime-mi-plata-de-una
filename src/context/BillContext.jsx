@@ -14,12 +14,15 @@ const initialState = {
   paidPersonaId: null, // quién pagó — es "meta" (como total/pct/currency): lo fija una sola
                         // vez quien crea la cuenta, así no hay que sincronizar el flag por
                         // persona (que rompería con el modelo de "cada quien es dueño de la suya")
-  shared: [], // [{id, name, price}]
+  shared: [], // [{id, name, price, participantIds}] — participantIds vacío = todos
   personas: [] // [{id, name, emoji, items:[{id,name,price}]}]
 };
 
 function normalizeShared(list) {
-  return (list || []).map(i => ({ id: i.id, name: i.name || '', price: i.price || '' }));
+  return (list || []).map(i => ({
+    id: i.id, name: i.name || '', price: i.price || '',
+    participantIds: Array.isArray(i.participantIds) ? i.participantIds : []
+  }));
 }
 
 function normalizePersonas(list) {
@@ -33,6 +36,21 @@ function shallowItemsEqual(a, b) {
   if (a === b) return true;
   if (a.length !== b.length) return false;
   return a.every((it, i) => it.id === b[i].id && it.name === b[i].name && it.price === b[i].price);
+}
+
+function arraysEqualUnordered(a, b) {
+  if (a === b) return true;
+  if (a.length !== b.length) return false;
+  const setB = new Set(b);
+  return a.every(v => setB.has(v));
+}
+
+function shallowSharedEqual(a, b) {
+  if (a === b) return true;
+  if (a.length !== b.length) return false;
+  return a.every((it, i) =>
+    it.id === b[i].id && it.name === b[i].name && it.price === b[i].price &&
+    arraysEqualUnordered(it.participantIds, b[i].participantIds));
 }
 
 function shallowPersonaEqual(a, b) {
@@ -84,7 +102,7 @@ function billReducer(state, action) {
       };
 
     case 'ADD_SHARED_ITEM':
-      return { ...state, shared: [...state.shared, { id: uid(), name: '', price: '' }] };
+      return { ...state, shared: [...state.shared, { id: uid(), name: '', price: '', participantIds: [] }] };
 
     case 'DUP_SHARED_ITEM': {
       const idx = state.shared.findIndex(i => i.id === action.id);
@@ -103,6 +121,22 @@ function billReducer(state, action) {
         ...state,
         shared: state.shared.map(i => i.id === action.id ? { ...i, [action.field]: action.value } : i)
       };
+
+    case 'TOGGLE_SHARED_PARTICIPANT': {
+      const allIds = state.personas.map(p => p.id);
+      return {
+        ...state,
+        shared: state.shared.map(i => {
+          if (i.id !== action.itemId) return i;
+          // vacío significaba "todos" — al tocar el primero, se hace explícito
+          const current = i.participantIds.length > 0 ? i.participantIds : allIds;
+          const participantIds = current.includes(action.personaId)
+            ? current.filter(id => id !== action.personaId)
+            : [...current, action.personaId];
+          return { ...i, participantIds };
+        })
+      };
+    }
 
     case 'CHANGE_PERSONA_EMOJI':
       return { ...state, personas: state.personas.map(p => p.id === action.id ? { ...p, emoji: action.emoji } : p) };
@@ -215,7 +249,7 @@ function billReducer(state, action) {
         newPersonas.length !== state.personas.length ||
         newPersonas.some((p, i) => p !== state.personas[i]);
       const sharedChanged = newShared !== state.shared &&
-        (newShared.length !== state.shared.length || !shallowItemsEqual(newShared, state.shared));
+        (newShared.length !== state.shared.length || !shallowSharedEqual(newShared, state.shared));
 
       if (!personasChanged && !sharedChanged &&
           newTotal === state.total && newPct === state.pct && newCurrency === state.currency &&

@@ -15,7 +15,10 @@ module.exports = async (req, res) => {
   if (body.deleted) {
     await redis.hdel(key, `shared:${itemId}`);
   } else {
-    const item = { id: Number(itemId), name: body.name || '', price: body.price || '' };
+    const item = {
+      id: Number(itemId), name: body.name || '', price: body.price || '',
+      participantIds: Array.isArray(body.participantIds) ? body.participantIds : []
+    };
     await redis.hset(key, { [`shared:${itemId}`]: JSON.stringify(item) });
   }
 

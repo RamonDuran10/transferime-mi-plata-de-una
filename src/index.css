@@ -248,6 +248,21 @@
       border: 1.5px solid #1B1A2E; border-radius: 999px; padding: 2px 9px; font-weight: 700;
     }
 
+    /* ── Quién pide cada ítem compartido ── */
+    .shared-item { padding-bottom: 6px; }
+    .shared-participants {
+      display: flex; align-items: center; gap: 5px; flex-wrap: wrap;
+      padding: 4px 4px 2px;
+    }
+    .shared-participants-label { font-size: 0.68rem; color: #12609E; font-weight: 600; margin-right: 2px; }
+    .participant-chip {
+      width: 26px; height: 26px; padding: 0; border-radius: 999px;
+      border: 2px solid #C9C3E0; background: #fff; font-size: 0.85rem; line-height: 1;
+      opacity: .4; filter: grayscale(1); cursor: pointer; transition: all .15s;
+    }
+    .participant-chip.active { opacity: 1; filter: none; border-color: #4DABF7; background: #EAF6FF; }
+    .participant-chip:disabled { cursor: not-allowed; }
+
     /* ── Personas ── */
     .personas-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
     .persona-card {
@@ -368,11 +383,6 @@
     .summary-row .name { font-weight: 600; color: #1B1A2E; }
     .summary-row .amount { font-family: 'Baloo 2', cursive; font-weight: 800; color: #1B1A2E; }
     .summary-row-rico { background: #FFD9A0; }
-    .summary-shared-row {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 5px 10px; background: #EAF6FF; border-radius: 10px;
-      font-size: 0.75rem; color: #12609E; font-weight: 600;
-    }
     .summary-total-row {
       display: flex; justify-content: space-between; align-items: center;
       padding: 7px 10px; border-radius: 10px; font-size: 0.85rem; font-weight: 700; margin-top: 3px;

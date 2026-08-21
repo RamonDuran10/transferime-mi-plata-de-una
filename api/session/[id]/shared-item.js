@@ -13,7 +13,10 @@ module.exports = async (req, res) => {
   try { body = await readJson(req); } catch { return res.status(400).json({ error: 'bad_json' }); }
 
   const newId = await redis.hincrby(key, 'sharedSeq', 1);
-  const item = { id: newId, name: body.name || '', price: body.price || '' };
+  const item = {
+    id: newId, name: body.name || '', price: body.price || '',
+    participantIds: Array.isArray(body.participantIds) ? body.participantIds : []
+  };
 
   await redis.hset(key, { [`shared:${newId}`]: JSON.stringify(item) });
   await bumpVersion(id);

@@ -2,7 +2,7 @@ import { useBillState } from '../context/BillContext';
 import { parseAmount, fmt } from '../lib/currency';
 import { T } from '../i18n/es';
 
-export default function Summary({ results, total, sharedPP, sharedAmt }) {
+export default function Summary({ results, total }) {
   const state = useBillState();
   const currency = state.currency;
 
@@ -25,11 +25,13 @@ export default function Summary({ results, total, sharedPP, sharedAmt }) {
   const gPct = parseFloat(state.pct) || 0;
   let baseSinPropina = 0, propinaMonto = 0;
   if (gPct > 0) {
-    baseSinPropina = results.reduce((s, r) => {
+    const baseItems = results.reduce((s, r) => {
       const p = state.personas.find(px => px.id === r.id);
       const baseP = p ? p.items.reduce((a, i) => a + (parseAmount(i.price, currency) || 0), 0) : 0;
       return s + baseP;
-    }, 0) + (state.shared.reduce((s, i) => s + (parseAmount(i.price, currency) || 0), 0) / (state.personas.length || 1)) * state.personas.length;
+    }, 0);
+    const baseShared = state.shared.reduce((s, i) => s + (parseAmount(i.price, currency) || 0), 0);
+    baseSinPropina = baseItems + baseShared;
     propinaMonto = sum - baseSinPropina;
   }
 
@@ -44,13 +46,6 @@ export default function Summary({ results, total, sharedPP, sharedAmt }) {
     <div className="summary">
       <h2>{T.summary.title}</h2>
       <div className="summary-rows">
-        {sharedAmt > 0 && state.personas.length > 0 && (
-          <div className="summary-shared-row">
-            <span>{T.summary.sharedLine(state.personas.length)}</span>
-            <span style={{ fontWeight: 700 }}>{fmt(sharedPP, currency)} {T.summary.perUnit}</span>
-          </div>
-        )}
-
         {results.map((r, i) => {
           const isRico = i === richIdx && hayDif && results.length > 1;
           return (

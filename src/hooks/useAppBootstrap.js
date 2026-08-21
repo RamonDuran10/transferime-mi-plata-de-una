@@ -10,7 +10,10 @@ function normalizeRemoteBill(data) {
   return {
     total: data.total ? formatAmountInput(data.total, data.currency) : '', pct: data.pct || '', currency: data.currency || '',
     created: true, paidPersonaId: data.paidPersonaId ?? null,
-    shared: (data.shared || []).map(i => ({ id: i.id, name: i.name || '', price: i.price || '' })),
+    shared: (data.shared || []).map(i => ({
+      id: i.id, name: i.name || '', price: i.price || '',
+      participantIds: Array.isArray(i.participantIds) ? i.participantIds : []
+    })),
     personas: (data.personas || []).map(p => ({
       id: p.id, name: p.name || '', emoji: p.emoji || '',
       items: (p.items || []).map(i => ({ id: i.id, name: i.name || '', price: i.price || '' }))

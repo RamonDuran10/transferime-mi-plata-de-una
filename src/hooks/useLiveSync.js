@@ -112,7 +112,7 @@ export function useLiveSync() {
           await apiCall(sessionId + '/shared-item/' + item.id, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: item.name, price: item.price })
+            body: JSON.stringify({ name: item.name, price: item.price, participantIds: item.participantIds })
           });
         }
         const { ok, data } = await apiCall(sessionId);

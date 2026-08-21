@@ -49,6 +49,8 @@ export function useBillActions() {
   const removeSharedItem = useCallback((id) => dispatch({ type: 'REMOVE_SHARED_ITEM', id }), [dispatch]);
   const updateSharedItem = useCallback((id, field, value) =>
     dispatch({ type: 'UPDATE_SHARED_ITEM', id, field, value }), [dispatch]);
+  const toggleSharedParticipant = useCallback((itemId, personaId) =>
+    dispatch({ type: 'TOGGLE_SHARED_PARTICIPANT', itemId, personaId }), [dispatch]);
 
   const changePersonaEmoji = useCallback((id) =>
     dispatch({ type: 'CHANGE_PERSONA_EMOJI', id, emoji: randomAnimal() }), [dispatch]);
@@ -92,7 +94,7 @@ export function useBillActions() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           total: state.total, pct: state.pct, currency: state.currency,
-          shared: state.shared.map(i => ({ id: i.id, name: i.name, price: i.price }))
+          shared: state.shared.map(i => ({ id: i.id, name: i.name, price: i.price, participantIds: i.participantIds }))
         })
       });
       if (!ok) throw new Error('create_failed');
@@ -177,14 +179,14 @@ export function useBillActions() {
   // esta referencia no cambie para que `memo` los proteja de verdad.
   return useMemo(() => ({
     createAccount, resetAll, setTotal, setPct, setCurrency,
-    addSharedItem, dupSharedItem, removeSharedItem, updateSharedItem,
+    addSharedItem, dupSharedItem, removeSharedItem, updateSharedItem, toggleSharedParticipant,
     changePersonaEmoji, removePersona, updatePersonaName, setPagador,
     addItem, dupItem, removeItem, updateItem,
     goLive, confirmCloseLive, confirmLeaveLive, handleLiveIndicatorAction,
     addPersonaLiveDraft, guardarMisGastos
   }), [
     createAccount, resetAll, setTotal, setPct, setCurrency,
-    addSharedItem, dupSharedItem, removeSharedItem, updateSharedItem,
+    addSharedItem, dupSharedItem, removeSharedItem, updateSharedItem, toggleSharedParticipant,
     changePersonaEmoji, removePersona, updatePersonaName, setPagador,
     addItem, dupItem, removeItem, updateItem,
     goLive, confirmCloseLive, confirmLeaveLive, handleLiveIndicatorAction,

@@ -3,7 +3,7 @@ import { useBillState } from '../context/BillContext';
 import { useBillActions } from '../hooks/useBillActions';
 import { useModalOpen } from '../context/ModalOpenContext';
 import { useUsageCounter } from '../hooks/useUsageCounter';
-import { computeResults, sharedTotalConPct } from '../lib/bill';
+import { computeResults, sharedItemParticipants, sharedContributionsByPersona } from '../lib/bill';
 import { parseAmount, fmt } from '../lib/currency';
 import { T } from '../i18n/es';
 
@@ -13,10 +13,12 @@ function buildTotalsText(results, currency) {
   return results.map(r => `${r.name} — ${fmt(r.amount, currency)}`).join('\n');
 }
 
-function buildExportText(state, results, total, sharedPP, ok) {
+function buildExportText(state, results, total, ok) {
   const currency = state.currency;
   const gPct = parseFloat(state.pct) || 0;
-  const n = state.personas.length;
+  const personaIds = state.personas.map(p => p.id);
+  const nameById = new Map(state.personas.map(p => [p.id, p.name || T.persona.removeConfirmFallbackName]));
+  const contributions = sharedContributionsByPersona(state);
   const sum = results.reduce((s, r) => s + r.amount, 0);
 
   let txt = T.export.header + '\n';
@@ -38,13 +40,15 @@ function buildExportText(state, results, total, sharedPP, ok) {
   if (payer) txt += T.export.paidBy(payer.name || T.persona.removeConfirmFallbackName) + '\n';
 
   const sharedConValor = state.shared.filter(i => parseAmount(i.price, currency) > 0);
-  if (sharedConValor.length > 0 && n > 0) {
-    txt += '\n' + T.export.sharedHeader(n) + '\n';
+  if (sharedConValor.length > 0 && personaIds.length > 0) {
+    txt += '\n' + T.export.sharedHeader + '\n';
     sharedConValor.forEach(i => {
       const pr = parseAmount(i.price, currency) || 0;
       const tot = pr * (1 + gPct / 100);
       const label = i.name || T.export.sharedItemDefault;
-      txt += T.export.sharedItemLine(label, fmt(tot, currency), fmt(tot / n, currency)) + '\n';
+      const participants = sharedItemParticipants(i, personaIds);
+      const names = participants.map(id => nameById.get(id)).join(', ');
+      txt += T.export.sharedItemLine(label, fmt(tot, currency), fmt(tot / (participants.length || 1), currency), names) + '\n';
     });
   }
 
@@ -64,8 +68,9 @@ function buildExportText(state, results, total, sharedPP, ok) {
         }
       });
     }
-    if (sharedPP > 0) {
-      const baseSharedPP = sharedPP / (1 + gPct / 100);
+    const mySharedPP = p ? (contributions[p.id] || 0) : 0;
+    if (mySharedPP > 0) {
+      const baseSharedPP = mySharedPP / (1 + gPct / 100);
       basePersona += baseSharedPP;
       txt += T.export.sharedPersonLine(fmt(baseSharedPP, currency)) + '\n';
     }
@@ -162,15 +167,12 @@ export default function ShareModal() {
   const [detailOpen, setDetailOpen] = useState(false);
 
   const total = parseAmount(state.total, state.currency) || 0;
-  const n = state.personas.length;
-  const sharedAmt = sharedTotalConPct(state);
-  const sharedPP = n > 0 ? sharedAmt / n : 0;
-  const results = useMemo(() => computeResults(state, total, sharedPP), [state, total, sharedPP]);
+  const results = useMemo(() => computeResults(state), [state]);
   const sum = results.reduce((s, r) => s + r.amount, 0);
   const ok = total > 0 && Math.abs(sum - total) < 1;
 
   const totalsText = useMemo(() => buildTotalsText(results, state.currency), [results, state.currency]);
-  const text = useMemo(() => buildExportText(state, results, total, sharedPP, ok), [state, results, total, sharedPP, ok]);
+  const text = useMemo(() => buildExportText(state, results, total, ok), [state, results, total, ok]);
 
   const copyTotals = () => {
     navigator.clipboard.writeText(totalsText).then(() => {
