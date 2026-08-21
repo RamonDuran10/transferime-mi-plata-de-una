@@ -35,7 +35,8 @@ export const T = {
     createAccount: '✨ Crear cuenta',
     createAccountTitle: 'Arranca aquí: activa el formulario para sumar gente y anotar gastos',
     confirmReset: '¿Empezar de cero? Se borra todo lo que llevamos 🗑️',
-    metaLockedTitle: '🔒 El total y la propina se fijan al publicar la cuenta — ya no se pueden cambiar',
+    metaLockedTitle: '🔒 Solo lectura — lo define quien creó la cuenta',
+    currencyLockedTitle: '🔒 La moneda queda fija una vez publicada la cuenta',
     confirmCurrencyChange: 'Cambiar de moneda borra los montos que ya escribiste (no se convierten automáticamente, para no calcular mal). ¿Continuar?'
   },
 

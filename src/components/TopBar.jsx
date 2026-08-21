@@ -7,9 +7,13 @@ export default function TopBar({ onShare }) {
   const state = useBillState();
   const { setTotal, setCurrency, setPct } = useBillActions();
 
-  // el total y la propina los fija el host una sola vez, antes de publicar —
-  // una vez en vivo quedan de solo lectura para todos (host incluido)
-  const metaLocked = !!state.liveSession;
+  // el total y la propina suelen llegar tarde (la boleta del local) —
+  // el host los puede editar en cualquier momento, publicada la cuenta o no.
+  // La moneda sí queda fija una vez en vivo: cambiarla borra todos los montos
+  // y no hay forma de "limpiar" a distancia lo que ya cargó cada invitado.
+  const isGuest = state.mode === 'guest';
+  const totalPctLocked = isGuest;
+  const currencyLocked = isGuest || !!state.liveSession;
   const hasTip = (parseFloat(state.pct) || 0) > 0;
 
   return (
@@ -18,18 +22,18 @@ export default function TopBar({ onShare }) {
         <input
           type="text" inputMode="decimal" id="totalBill"
           placeholder={T.topbar.totalPlaceholder}
-          title={metaLocked ? T.topbar.metaLockedTitle : T.topbar.totalTitle}
+          title={totalPctLocked ? T.topbar.metaLockedTitle : T.topbar.totalTitle}
           value={state.total}
-          readOnly={metaLocked}
+          readOnly={totalPctLocked}
           onChange={e => setTotal(e.target.value)}
           onBlur={e => setTotal(reformatAmountValue(e.target.value, state.currency))}
         />
       </div>
       <div className="top-bar-row top-bar-selects">
         <select
-          className="currency-select" title={T.topbar.currencyTitle}
+          className="currency-select" title={currencyLocked ? T.topbar.currencyLockedTitle : T.topbar.currencyTitle}
           value={state.currency || 'CLP'}
-          disabled={metaLocked}
+          disabled={currencyLocked}
           onChange={async e => { await setCurrency(e.target.value); }}
         >
           {Object.entries(T.topbar.currencyOptions).map(([code, label]) => (
@@ -40,16 +44,16 @@ export default function TopBar({ onShare }) {
           <input
             type="checkbox"
             checked={hasTip}
-            disabled={metaLocked}
+            disabled={totalPctLocked}
             onChange={e => setPct(e.target.checked ? 10 : 0)}
           />
           {T.topbar.tipCheckLabel}
         </label>
         {hasTip && (
           <select
-            className="tip-select" title={metaLocked ? T.topbar.metaLockedTitle : T.topbar.tipLabel}
+            className="tip-select" title={totalPctLocked ? T.topbar.metaLockedTitle : T.topbar.tipLabel}
             value={String(parseFloat(state.pct) || 10)}
-            disabled={metaLocked}
+            disabled={totalPctLocked}
             onChange={e => setPct(parseInt(e.target.value, 10))}
           >
             {[10, 15, 20].map(v => (
