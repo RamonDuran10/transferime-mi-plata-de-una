@@ -256,11 +256,12 @@
     }
     .shared-participants-label { font-size: 0.68rem; color: #12609E; font-weight: 600; margin-right: 2px; }
     .participant-chip {
-      width: 26px; height: 26px; padding: 0; border-radius: 999px;
-      border: 2px solid #C9C3E0; background: #fff; font-size: 0.85rem; line-height: 1;
-      opacity: .4; filter: grayscale(1); cursor: pointer; transition: all .15s;
+      height: 24px; padding: 0 9px; border-radius: 999px;
+      border: 2px solid #C9C3E0; background: #fff; color: #A9A4BD;
+      font-size: 0.72rem; font-weight: 700; line-height: 1;
+      opacity: .7; cursor: pointer; transition: all .15s; white-space: nowrap;
     }
-    .participant-chip.active { opacity: 1; filter: none; border-color: #4DABF7; background: #EAF6FF; }
+    .participant-chip.active { opacity: 1; border-color: #4DABF7; background: #EAF6FF; color: #12609E; }
     .participant-chip:disabled { cursor: not-allowed; }
 
     /* ── Personas ── */

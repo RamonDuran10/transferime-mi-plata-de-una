@@ -102,7 +102,12 @@ function billReducer(state, action) {
       };
 
     case 'ADD_SHARED_ITEM':
-      return { ...state, shared: [...state.shared, { id: uid(), name: '', price: '', participantIds: [] }] };
+      // foto de quién ya está sumado en este momento — quien se sume después
+      // no entra solo, hay que agregarlo a mano con los chips
+      return {
+        ...state,
+        shared: [...state.shared, { id: uid(), name: '', price: '', participantIds: state.personas.map(p => p.id) }]
+      };
 
     case 'DUP_SHARED_ITEM': {
       const idx = state.shared.findIndex(i => i.id === action.id);
@@ -123,16 +128,13 @@ function billReducer(state, action) {
       };
 
     case 'TOGGLE_SHARED_PARTICIPANT': {
-      const allIds = state.personas.map(p => p.id);
       return {
         ...state,
         shared: state.shared.map(i => {
           if (i.id !== action.itemId) return i;
-          // vacío significaba "todos" — al tocar el primero, se hace explícito
-          const current = i.participantIds.length > 0 ? i.participantIds : allIds;
-          const participantIds = current.includes(action.personaId)
-            ? current.filter(id => id !== action.personaId)
-            : [...current, action.personaId];
+          const participantIds = i.participantIds.includes(action.personaId)
+            ? i.participantIds.filter(id => id !== action.personaId)
+            : [...i.participantIds, action.personaId];
           return { ...i, participantIds };
         })
       };

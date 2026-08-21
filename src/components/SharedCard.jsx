@@ -34,9 +34,8 @@ const SharedItemRow = memo(function SharedItemRow({
               className={'participant-chip' + (participants.includes(p.id) ? ' active' : '')}
               onClick={() => onToggleParticipant(item.id, p.id)}
               disabled={!canEditParticipants}
-              title={p.name || T.persona.removeConfirmFallbackName}
             >
-              {p.emoji}
+              {p.name || T.shared.unnamedParticipant}
             </button>
           ))}
         </div>

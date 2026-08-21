@@ -14,16 +14,15 @@ export function sharedTotalConPct(state) {
   return base * (1 + pct / 100);
 }
 
-// quién pide este ítem — vacío (nunca tocado) significa "todos los que hay ahora".
+// quién pide este ítem — es una lista fija (se decide al crear el ítem o a
+// mano con los chips). Quien se suma a la cuenta después NO entra solo, para
+// no cobrarle algo que no pidió sin que nadie se dé cuenta.
 // Recibe la lista de ids (no los objetos persona completos): así el llamador
 // puede memoizarla y no romper el aislamiento de re-render entre tarjetas
 // cuando lo único que cambió fue lo que otra persona está tipeando.
 export function sharedItemParticipants(item, personaIds) {
-  if (item.participantIds && item.participantIds.length > 0) {
-    const validIds = new Set(personaIds);
-    return item.participantIds.filter(id => validIds.has(id));
-  }
-  return personaIds;
+  const validIds = new Set(personaIds);
+  return (item.participantIds || []).filter(id => validIds.has(id));
 }
 
 // cuánto le toca a cada persona de lo compartido — ya no es un solo número

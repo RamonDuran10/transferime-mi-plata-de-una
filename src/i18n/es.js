@@ -51,6 +51,7 @@ export const T = {
     badgeAll: '÷ todos',
     badgeTotal: 'total',
     whoAsked: '¿Quién pidió esto?',
+    unnamedParticipant: 'Sin nombre',
     columnWhat: '¿Qué se pidió para compartir?',
     columnPrice: 'Precio',
     namePlaceholder: 'ej. Las papas fritas',
